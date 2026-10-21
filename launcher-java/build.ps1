@@ -22,6 +22,9 @@ $ErrorActionPreference = "Stop"
 $Here = $PSScriptRoot
 if (-not $Here) { $Here = (Get-Location).Path }
 $Root = Split-Path $Here -Parent
+$versionFile = Join-Path $Here 'src\main\resources\mxcloud-version.properties'
+$releaseVersion = ((Get-Content -LiteralPath $versionFile | Where-Object { $_ -match '^version=' }) -replace '^version=','').Trim()
+if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid shared launcher version' }
 
 function Step($n, $total, $msg) {
     Write-Host ("`n=== [{0}/{1}] {2} ===" -f $n, $total, $msg) -ForegroundColor Cyan
@@ -100,7 +103,7 @@ Manifest-Version: 1.0
 Main-Class: dev.mx.launcher.Main
 Class-Path: jna-5.14.0.jar jna-platform-5.14.0.jar
 Implementation-Title: MXCloud Launcher
-Implementation-Version: 1.0.0
+Implementation-Version: $releaseVersion
 
 "@ | Set-Content -Path $mf -Encoding ASCII
 

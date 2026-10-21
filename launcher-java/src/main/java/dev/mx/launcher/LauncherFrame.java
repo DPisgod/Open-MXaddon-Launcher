@@ -21,6 +21,7 @@ public final class LauncherFrame extends JFrame {
     private final WallpaperPlayer wallpaper=new WallpaperPlayer();
     private final WallpaperView backdrop=new WallpaperView(wallpaper,appearance,0);
     private final JPanel homeView=UiTheme.transparent(new BorderLayout());
+    private final AnnouncementOverlay announcement=new AnnouncementOverlay(home);
     private final java.util.List<UiTheme.Surface> wallpaperSurfaces=new java.util.ArrayList<>();
     private final CardLayout pages=new CardLayout();
     private final JPanel pageHost=UiTheme.transparent(pages);
@@ -81,7 +82,7 @@ public final class LauncherFrame extends JFrame {
         JPanel state=UiTheme.transparent(new BorderLayout(0,6));state.setPreferredSize(new Dimension(100,38));state.add(statusLabel,BorderLayout.CENTER);progress.setPreferredSize(new Dimension(100,5));progress.setVisible(false);state.add(progress,BorderLayout.SOUTH);d.gridx=2;d.weightx=0;dock.add(state,d);
         launchBtn.setPreferredSize(new Dimension(150,46));launchBtn.addActionListener(e->onLaunch());d.gridx=3;d.insets=new Insets(0,0,0,0);d.fill=GridBagConstraints.NONE;dock.add(launchBtn,d);
         b.gridx=0;b.gridy=1;b.weightx=1;b.fill=GridBagConstraints.HORIZONTAL;b.insets=new Insets(0,0,0,0);bottom.add(dock,b);homeView.add(bottom,BorderLayout.SOUTH);
-        pageHost.add(homeView,"home");root.add(pageHost,BorderLayout.CENTER);setContentPane(WindowChrome.content(this,root));
+        homeView.add(announcement,BorderLayout.CENTER);pageHost.add(homeView,"home");root.add(pageHost,BorderLayout.CENTER);setContentPane(WindowChrome.content(this,root));
         versionBox.addActionListener(e->onVersionSelected());bindModDrop(getContentPane());WindowChrome.resize(this,getRootPane());refreshTheme();
     }
     private void bindModDrop(Component component){
@@ -97,6 +98,7 @@ public final class LauncherFrame extends JFrame {
         try{VersionSettingsDialog dialog=new VersionSettingsDialog(this,gameRoot,selectedVersion);dialog.importFiles(files);dialog.setVisible(true);}catch(Exception e){showError("无法添加 Mod",root(e));}
     }
     private void bootstrap(){
+        announcement.checkOnStartup();
         refreshVersions();Session saved=SessionStore.load(home);if(saved!=null)session=saved;applySession();refreshAvatarAsync();
         statusLabel.setText(selectedVersion.isEmpty()?"请添加游戏版本":"● 已就绪");
         if(session==null)statusLabel.setText("添加游戏账号后可启动");
@@ -207,7 +209,7 @@ public final class LauncherFrame extends JFrame {
         wallpaper.setPaused(minimized||appearanceVisible||(appearance.pauseWithGame&&(game||busy)));
         if(appearancePanel!=null)appearancePanel.setActive(appearanceVisible&&!minimized&&!(appearance.pauseWithGame&&game));
     }
-    private void disposeResources(){if(disposed)return;disposed=true;if(poller!=null)poller.stop();if(systemThemeTimer!=null)systemThemeTimer.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();}
+    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();if(systemThemeTimer!=null)systemThemeTimer.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();}
     @Override public void dispose(){disposeResources();super.dispose();}
     private void showError(String title,String body){WindowChrome.prompt(this,title,body,false);}
     private static String root(Throwable e){while(e.getCause()!=null&&e.getCause()!=e)e=e.getCause();return e.getMessage()==null?"操作未完成，请重试。":e.getMessage();}
