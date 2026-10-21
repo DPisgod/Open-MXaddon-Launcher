@@ -1,14 +1,14 @@
-// MXCloudLauncher.cpp —— 自解压启动器壳子
+// OMLLauncher.cpp —— 自解压启动器壳子
 //
 // 作用：把内嵌的启动器运行时（jar / JRE）解压到 %TEMP%，
 // 然后启动图形界面。用户看到的目录里只有：
 //
-//     MXCloud启动器.exe
+//     OML启动器.exe
 //     .minecraft\              （游戏目录，用户自备）
 //
 // 设计要点：
 //   * 内嵌内容只有启动器本身：不含游戏、不含任何 mod、不连接授权服务。
-//   * 解压到 %TEMP%\MXCloud\<内容版本>\，用内容哈希做缓存：
+//   * 解压到 %TEMP%\OML\<内容版本>\，用内容哈希做缓存：
 //     版本一致则跳过解压，直接复用，加快二次启动。
 //   * 通过 -Dmxcloud.home=<exe目录> 告诉 Java 侧：.minecraft / 设置 / 皮肤缓存
 //     都在 exe 旁边，而不是临时目录。
@@ -34,8 +34,8 @@
 // 资源 ID 由构建脚本生成的 payload_ids.h 提供
 #include "payload_ids.h"
 
-#ifndef MXCLOUD_BUILD_ID
-#define MXCLOUD_BUILD_ID "dev"
+#ifndef OML_BUILD_ID
+#define OML_BUILD_ID "dev"
 #endif
 
 // ============================================================
@@ -214,7 +214,7 @@ static bool run_hidden(const std::wstring &cmdline, DWORD timeoutMs = 180000) {
 
 /** 弹窗报错（Windows 子系统下没有控制台，必须用对话框）。 */
 static void fail_box(const std::wstring &msg) {
-    MessageBoxW(nullptr, msg.c_str(), L"MXCloud 启动器", MB_ICONERROR | MB_OK);
+    MessageBoxW(nullptr, msg.c_str(), L"OML 启动器", MB_ICONERROR | MB_OK);
 }
 
 struct ExtractionGuard {
@@ -226,7 +226,7 @@ struct ExtractionGuard {
 int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
     // Serialize first-run extraction. Java owns the long-lived, per-user UI lock.
     ExtractionGuard extraction;
-    extraction.handle = CreateMutexW(nullptr, FALSE, L"Local\\MXCloud.Extract." MXCLOUD_BUILD_ID);
+    extraction.handle = CreateMutexW(nullptr, FALSE, L"Local\\OML.Extract." OML_BUILD_ID);
     DWORD wait = extraction.handle ? WaitForSingleObject(extraction.handle, 180000) : WAIT_FAILED;
     extraction.owned = wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED;
     if (!extraction.owned) { fail_box(L"启动器正在准备运行环境，请稍后重试。"); return 1; }
@@ -236,7 +236,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 
     const std::wstring tmpRoot = temp_root();
     const std::wstring cacheDir =
-        tmpRoot + L"\\MXCloud\\" + std::wstring(L"" MXCLOUD_BUILD_ID);
+        tmpRoot + L"\\OML\\" + std::wstring(L"" OML_BUILD_ID);
     logf(L"cacheDir = %ls", cacheDir.c_str());
 
     const std::wstring jarPath = cacheDir + L"\\mxaddon-launcher.jar";
@@ -284,7 +284,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
             logf(L"[FAIL] 解压结果不完整: jar=%d jre=%d",
                  file_exists(jarPath) ? 1 : 0,
                  file_exists(jreDir + L"\\bin\\javaw.exe") ? 1 : 0);
-            fail_box(L"解压结果不完整。\n\n请删除 %TEMP%\\MXCloud 后重试。");
+            fail_box(L"解压结果不完整。\n\n请删除 %TEMP%\\OML 后重试。");
             return 1;
         }
         logf(L"解压结果校验通过");

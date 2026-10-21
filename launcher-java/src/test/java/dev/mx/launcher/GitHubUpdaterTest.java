@@ -21,7 +21,7 @@ public final class GitHubUpdaterTest {
 
     public static void main(String[] args) throws Exception {
         hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(INSTALLER));
-        fixture = release("v1.2.0", "MXCloud-Setup-1.2.0.exe", hash);
+        fixture = release("v1.2.0", "OML-Setup-1.2.0.exe", hash);
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
             String path = exchange.getRequestURI().getPath();
@@ -50,13 +50,13 @@ public final class GitHubUpdaterTest {
             check(downloads.get() == 0, "Checking never downloads an installer");
             fixture = fixture.replace("\"prerelease\":false", "\"prerelease\":true");
             check(updater.latest("1.0.0") == null, "Ignore prereleases");
-            fixture = release("v1.2.0", "MXCloud-Setup-1.2.0.exe", hash).replace("\"draft\":false", "\"draft\":true");
+            fixture = release("v1.2.0", "OML-Setup-1.2.0.exe", hash).replace("\"draft\":false", "\"draft\":true");
             check(updater.latest("1.0.0") == null, "Ignore drafts");
-            fixture = release("v1.2.0-beta", "MXCloud-Setup-1.2.0-beta.exe", hash);
+            fixture = release("v1.2.0-beta", "OML-Setup-1.2.0-beta.exe", hash);
             check(updater.latest("1.0.0") == null, "Ignore non-release tags");
-            fixture = release("v1.2.0", "MXCloud-Launcher-1.2.0-portable.zip", hash);
+            fixture = release("v1.2.0", "OML-Launcher-1.2.0-portable.zip", hash);
             check(updater.latest("1.0.0") == null, "Require setup, not portable ZIP");
-            fixture = release("v1.2.0", "MXCloud-Setup-1.2.0.exe", hash).replace("https://github.com/", "https://example.org/");
+            fixture = release("v1.2.0", "OML-Setup-1.2.0.exe", hash).replace("https://github.com/", "https://example.org/");
             check(updater.latest("1.0.0") == null, "Require this repository's asset");
             status = 404; check(updater.latest("1.0.0") == null, "No release");
             status = 403; expectFailure(() -> updater.latest("1.0.0"), "API failure"); status = 200;
@@ -88,7 +88,7 @@ public final class GitHubUpdaterTest {
 
     private static Set<Path> tempDirectories() throws IOException {
         try (var entries = Files.list(Path.of(System.getProperty("java.io.tmpdir")))) {
-            return new HashSet<>(entries.filter(path -> path.getFileName().toString().startsWith("MXCloud-update-")).toList());
+            return new HashSet<>(entries.filter(path -> path.getFileName().toString().startsWith("OML-update-")).toList());
         }
     }
     private static String release(String tag, String filename, String digest) {

@@ -101,12 +101,12 @@ temp/
 device-session.dat
 accounts.dat
 artifacts/
-MXCloud单文件版/
-MXCloud单文件版.zip
+OML单文件版/
+OML单文件版.zip
 launcher-java/lib/
 launcher-java/shell/_stage/
-MXCloud单文件版/
-MXCloud单文件版.zip
+OML单文件版/
+OML单文件版.zip
 server-backend/irc/bin/
 server-backend/irc/obj/
 server-backend/irc/publish*/
@@ -118,3 +118,7 @@ curseforge-key.dat
 wallpapers/
 !launcher-java/src/main/resources/wallpapers/
 !launcher-java/src/main/resources/wallpapers/default-landscape.png
+
+# Historical build outputs
+MXCloud单文件版/
+MXCloud单文件版.zip

@@ -56,7 +56,7 @@ public final class SessionStore {
 
         Path f = LauncherPaths.dataFile(home,FILE);
         try (OutputStream out = Files.newOutputStream(f)) {
-            p.store(out, "MXCloud session");
+            p.store(out, "OML session");
         } catch (IOException ignored) {
             return;
         }

@@ -24,7 +24,7 @@ public final class LauncherUpdateDialogTest {
                 public InputStream getInputStream() { return new ByteArrayInputStream(data); }
             };
         });
-        GitHubUpdater.Release release = new GitHubUpdater.Release("1.2.0", URI.create("https://github.com/DPisgod/Open-MXaddon-Launcher/releases/download/v1.2.0/MXCloud-Setup-1.2.0.exe"), data.length, "");
+        GitHubUpdater.Release release = new GitHubUpdater.Release("1.2.0", URI.create("https://github.com/DPisgod/Open-MXaddon-Launcher/releases/download/v1.2.0/OML-Setup-1.2.0.exe"), data.length, "");
         CountDownLatch installed = new CountDownLatch(1);
         SwingUtilities.invokeAndWait(() -> {
             UiTheme.set("light");

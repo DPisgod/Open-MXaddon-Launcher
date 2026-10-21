@@ -34,7 +34,10 @@ final class SingleInstance implements AutoCloseable {
     }
     static Path directory(){
         String local=System.getenv("LOCALAPPDATA");
-        return Path.of(local==null?System.getProperty("user.home"):local,"MXCloud","Instance");
+        Path base=Path.of(local==null?System.getProperty("user.home"):local);
+        // Share the existing lock with older installations to prevent concurrent writes.
+        Path legacy=base.resolve("MXCloud").resolve("Instance");
+        return Files.isDirectory(legacy)?legacy:base.resolve("OML").resolve("Instance");
     }
     /** null means the existing process acknowledged activation. Never start a second UI on IPC failure. */
     static SingleInstance acquire(Path directory) throws IOException {
@@ -60,7 +63,7 @@ final class SingleInstance implements AutoCloseable {
                 }catch(IOException|IllegalArgumentException ignored){}
                 try{Thread.sleep(100);}catch(InterruptedException stopped){Thread.currentThread().interrupt();throw new IOException(stopped);}
             }
-            throw new IOException("已检测到运行中的 MXCloud，但暂时无法唤起窗口。请稍后重试。");
+            throw new IOException("已检测到运行中的 OML，但暂时无法唤起窗口。请稍后重试。");
         }catch(IOException failure){channel.close();throw failure;}
     }
     private interface Foreground extends com.sun.jna.win32.StdCallLibrary{

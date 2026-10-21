@@ -12,7 +12,7 @@ public final class AnnouncementUiTest {
     public static void main(String[] args) throws Exception {
         Path home = Files.createTempDirectory("mx-announcement-ui-"); LauncherPaths.override(home);
         Appearance appearance = new Appearance(); appearance.theme = "light"; appearance.save(home);
-        AnnouncementFeed.Message first = AnnouncementFeed.message("欢迎使用 MXCloud 启动器！\n\n启动器现已支持 GitHub Release 更新检查。发现新版本时，你可以选择立即更新，也可以取消并继续使用当前版本。\n\n祝你游戏愉快。");
+        AnnouncementFeed.Message first = AnnouncementFeed.message("欢迎使用 OML 启动器！\n\n启动器现已支持 GitHub Release 更新检查。发现新版本时，你可以选择立即更新，也可以取消并继续使用当前版本。\n\n祝你游戏愉快。");
         SwingUtilities.invokeAndWait(() -> {
             LauncherFrame frame = new LauncherFrame(false); frame.setVisible(true); frame.validate();
             try {

@@ -87,7 +87,7 @@ public final class SettingsDialog extends JDialog {
         root.setBackground(UiTheme.p().background());
         root.setBorder(BorderFactory.createEmptyBorder(18, 22, 16, 22));
 
-        JLabel title = new JLabel("设置 · MXCloud " + ApplicationVersion.CURRENT);
+        JLabel title = new JLabel("设置 · OML " + ApplicationVersion.CURRENT);
         title.setForeground(UiTheme.p().text());
         title.setFont(new Font("Microsoft YaHei UI", Font.BOLD, 16));
         root.add(title, BorderLayout.NORTH);

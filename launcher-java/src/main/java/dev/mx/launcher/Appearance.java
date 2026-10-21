@@ -38,7 +38,7 @@ final class Appearance {
         p.setProperty("pauseWithGame",Boolean.toString(pauseWithGame));
         Path temp=Files.createTempFile(file.getParent(),"appearance-",".tmp");
         try {
-            try(OutputStream out=Files.newOutputStream(temp)){p.store(out,"MXCloud appearance");}
+            try(OutputStream out=Files.newOutputStream(temp)){p.store(out,"OML appearance");}
             try{Files.move(temp,file,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);}
             catch(AtomicMoveNotSupportedException e){Files.move(temp,file,StandardCopyOption.REPLACE_EXISTING);}
         }finally{Files.deleteIfExists(temp);}

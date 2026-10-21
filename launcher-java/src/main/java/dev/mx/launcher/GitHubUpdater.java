@@ -41,7 +41,7 @@ final class GitHubUpdater {
             String tag = Json.str(release, "tag_name");
             String version = normalizeVersion(tag);
             if (version == null || compareVersions(version, current) <= 0) return null;
-            String filename = "MXCloud-Setup-" + version + ".exe";
+            String filename = "OML-Setup-" + version + ".exe";
             String expectedUrl = "https://github.com/" + REPOSITORY + "/releases/download/" + tag + "/" + filename;
             List<Object> assets = Json.arr(release, "assets");
             if (assets == null) return null;
@@ -76,9 +76,9 @@ final class GitHubUpdater {
 
     Path download(Release release, BooleanSupplier cancelled, LongConsumer progress) throws IOException {
         checkCancelled(cancelled);
-        Path directory = Files.createTempDirectory("MXCloud-update-");
+        Path directory = Files.createTempDirectory("OML-update-");
         Path partial = directory.resolve("installer.part");
-        Path installer = directory.resolve("MXCloud-Setup-" + release.version() + ".exe");
+        Path installer = directory.resolve("OML-Setup-" + release.version() + ".exe");
         boolean complete = false;
         try {
             HttpURLConnection connection = open(release.installer(), false);
@@ -129,7 +129,7 @@ final class GitHubUpdater {
                 connection.setConnectTimeout(metadata ? 7000 : 15000);
                 connection.setReadTimeout(metadata ? 7000 : 20000);
                 connection.setInstanceFollowRedirects(false);
-                connection.setRequestProperty("User-Agent", "MXCloud-Launcher/" + ApplicationVersion.CURRENT);
+                connection.setRequestProperty("User-Agent", "OML-Launcher/" + ApplicationVersion.CURRENT);
                 connection.setRequestProperty("Accept", metadata ? "application/vnd.github+json" : "application/octet-stream");
                 if (metadata) connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
                 int code = connection.getResponseCode();

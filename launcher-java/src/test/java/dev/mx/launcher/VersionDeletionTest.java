@@ -10,7 +10,7 @@ public final class VersionDeletionTest {
     static void check(boolean yes,String message){if(!yes)throw new AssertionError(message);}
     public static void main(String[] args)throws Exception{
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());Path home=Files.createTempDirectory("mx-version-delete-");LauncherPaths.override(home);Path root=home.resolve(".minecraft");
-        String first="1.21.1-MXCloud",second="1.20.1-test";
+        String first="1.21.1-OML",second="1.20.1-test";
         for(String id:new String[]{first,second}){Path dir=root.resolve("versions").resolve(id);Files.createDirectories(dir.resolve("instance/saves/test"));Files.writeString(dir.resolve(id+".json"),"{}");Files.writeString(dir.resolve("instance/saves/test/level.dat"),"keep-world");}
         Files.createDirectories(root.resolve("libraries"));Files.writeString(root.resolve("libraries/shared.jar"),"shared");
         LauncherFrame[] frame=new LauncherFrame[1];SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);});

@@ -1,11 +1,11 @@
 ﻿# ============================================================
-#  打包.ps1 —— MXCloud 启动器一键打包
+#  打包.ps1 —— OML 启动器一键打包
 # ------------------------------------------------------------
 #  产物：
 #    dist\                        运行目录（jar + JNA + 自带 JRE）
-#    dist-shell\MXCloud启动器.exe  单文件版
-#    上级目录\MXCloud单文件版\      可直接分发的目录
-#    上级目录\MXCloud单文件版.zip
+#    dist-shell\OML启动器.exe  单文件版
+#    上级目录\OML单文件版\      可直接分发的目录
+#    上级目录\OML单文件版.zip
 #
 #  用法：
 #    pwsh -File 打包.ps1
@@ -22,7 +22,7 @@ $ErrorActionPreference = "Stop"
 $Here = $PSScriptRoot
 if (-not $Here) { $Here = (Get-Location).Path }
 $Root = Split-Path $Here -Parent
-$versionFile = Join-Path $Here 'src\main\resources\mxcloud-version.properties'
+$versionFile = Join-Path $Here 'src\main\resources\OML-version.properties'
 $releaseVersion = ((Get-Content -LiteralPath $versionFile | Where-Object { $_ -match '^version=' }) -replace '^version=','').Trim()
 if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid shared launcher version' }
 
@@ -102,7 +102,7 @@ $mf = Join-Path $Here "build\MANIFEST.MF"
 Manifest-Version: 1.0
 Main-Class: dev.mx.launcher.Main
 Class-Path: jna-5.14.0.jar jna-platform-5.14.0.jar
-Implementation-Title: MXCloud Launcher
+Implementation-Title: OML Launcher
 Implementation-Version: $releaseVersion
 
 "@ | Set-Content -Path $mf -Encoding ASCII
@@ -157,4 +157,4 @@ if ($SkipShell) {
 Write-Host ""
 Write-Host "打包完成" -ForegroundColor Green
 Write-Host "  运行目录 : $dist"
-if (-not $SkipShell) { Write-Host "  单文件版 : $(Join-Path $Root 'MXCloud单文件版\MXCloud启动器.exe')" }
+if (-not $SkipShell) { Write-Host "  单文件版 : $(Join-Path $Root 'OML单文件版\OML启动器.exe')" }

@@ -31,10 +31,12 @@ final class MemoryAllocation {
     static Path file(Path root,String version){
         Path versions=root.toAbsolutePath().normalize().resolve("versions"),dir=versions.resolve(version).normalize();
         if(version.isBlank()||!dir.getParent().equals(versions))throw new IllegalArgumentException("无效的游戏版本");
-        return dir.resolve("mxcloud-settings.properties");
+        return dir.resolve("OML-settings.properties");
     }
     static Choice load(Path root,String version){
-        Properties p=new Properties();try(InputStream in=Files.newInputStream(file(root,version))){p.load(in);}catch(IOException ignored){}
+        Path settings=file(root,version),legacy=settings.resolveSibling("mxcloud-settings.properties");
+        if(!Files.exists(settings)&&Files.isRegularFile(legacy))try{Files.move(legacy,settings);}catch(IOException ignored){}
+        Properties p=new Properties();try(InputStream in=Files.newInputStream(Files.exists(settings)?settings:legacy)){p.load(in);}catch(IOException ignored){}
         String mode=p.getProperty("memoryMode","follow");if(!java.util.Set.of("follow","auto","custom").contains(mode))mode="follow";
         int mb=4096;try{mb=Integer.parseInt(p.getProperty("memoryMb","4096"));}catch(NumberFormatException ignored){}
         return new Choice(mode,clamp(mb));
@@ -43,7 +45,7 @@ final class MemoryAllocation {
         Path file=file(root,version);Files.createDirectories(file.getParent());Properties p=new Properties();
         p.setProperty("memoryMode",choice.mode);p.setProperty("memoryMb",String.valueOf(clamp(choice.mb)));
         Path temp=Files.createTempFile(file.getParent(),".memory-",".tmp");
-        try{try(OutputStream out=Files.newOutputStream(temp)){p.store(out,"MXCloud version settings");}
+        try{try(OutputStream out=Files.newOutputStream(temp)){p.store(out,"OML version settings");}
             Files.move(temp,file,StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
         }finally{Files.deleteIfExists(temp);}
     }

@@ -1,6 +1,6 @@
 # launcher-java
 
-MXCloud 启动器的界面与启动逻辑，全部为纯 Java 实现。
+OML 启动器的界面与启动逻辑，全部为纯 Java 实现。
 
 ## 组成
 
@@ -46,7 +46,7 @@ pwsh -File build.ps1 -SkipShell   # 只生成 dist\
 ```
 
 依赖（JNA 5.14.0）会自动下载到 `lib\`。单文件版本需要 MSVC Build Tools，
-脚本通过 `shell\build_shell.ps1` 编译 `shell\MXCloudLauncher.cpp`。
+脚本通过 `shell\build_shell.ps1` 编译 `shell\OMLLauncher.cpp`。
 
 ## 说明
 

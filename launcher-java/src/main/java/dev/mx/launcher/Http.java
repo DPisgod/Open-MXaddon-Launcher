@@ -157,6 +157,6 @@ public final class Http {
     }
 
     private static String userAgent() {
-        return "MXCloud-Launcher/" + ApplicationVersion.CURRENT;
+        return "OML-Launcher/" + ApplicationVersion.CURRENT;
     }
 }

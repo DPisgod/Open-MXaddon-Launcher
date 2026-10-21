@@ -53,7 +53,7 @@ final class GameLauncher {
         values.put("user_properties","{}");values.put("auth_xuid","");values.put("clientid","");
         values.put("natives_directory",natives.toString());values.put("library_directory",libraries.toString());
         values.put("classpath_separator",File.pathSeparator);values.put("classpath",String.join(File.pathSeparator,classpath.stream().map(Path::toString).toList()));
-        values.put("launcher_name","MXCloud");values.put("launcher_version",ApplicationVersion.CURRENT);
+        values.put("launcher_name","OML");values.put("launcher_version",ApplicationVersion.CURRENT);
         values.put("resolution_width","854");values.put("resolution_height","480");
         List<String> command=new ArrayList<>();command.add(GameJava.executable(root,major));
         command.add("-Xms"+Math.min(1024,memoryMb)+"M");command.add("-Xmx"+Math.max(1024,memoryMb)+"M");
@@ -108,7 +108,7 @@ final class GameLauncher {
         java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");List<Path> files;
         try(var entries=Files.list(source)){files=entries.filter(Files::isRegularFile).sorted().toList();}
         for(Path file:files){digest.update(file.getFileName().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));digest.update(Files.readAllBytes(file));}
-        Path cache=Path.of(System.getProperty("java.io.tmpdir"),"MXCloud","Natives",HexFormat.of().formatHex(digest.digest()).substring(0,20));Files.createDirectories(cache);
+        Path cache=Path.of(System.getProperty("java.io.tmpdir"),"OML","Natives",HexFormat.of().formatHex(digest.digest()).substring(0,20));Files.createDirectories(cache);
         for(Path file:files){Path target=cache.resolve(file.getFileName());if(!Files.isRegularFile(target)||Files.mismatch(file,target)!=-1)Files.copy(file,target,StandardCopyOption.REPLACE_EXISTING);}
         return cache;
     }

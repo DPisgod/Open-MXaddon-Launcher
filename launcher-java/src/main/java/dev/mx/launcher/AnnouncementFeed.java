@@ -24,7 +24,7 @@ final class AnnouncementFeed {
         try {
             connection.setConnectTimeout(7000); connection.setReadTimeout(7000);
             connection.setUseCaches(false); connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("User-Agent", "MXCloud-Launcher/" + ApplicationVersion.CURRENT);
+            connection.setRequestProperty("User-Agent", "OML-Launcher/" + ApplicationVersion.CURRENT);
             connection.setRequestProperty("Accept", "text/plain");
             connection.setRequestProperty("Cache-Control", "no-cache");
             int code = connection.getResponseCode();
@@ -79,7 +79,7 @@ final class AnnouncementFeed {
             values.setProperty("dismissed", dismissed); values.setProperty("x", Integer.toString(x)); values.setProperty("y", Integer.toString(y));
             Path temporary = Files.createTempFile(file.getParent(), "announcement-", ".tmp");
             try {
-                try (OutputStream output = Files.newOutputStream(temporary)) { values.store(output, "MXCloud announcement preferences"); }
+                try (OutputStream output = Files.newOutputStream(temporary)) { values.store(output, "OML announcement preferences"); }
                 try { Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
                 catch (AtomicMoveNotSupportedException unsupported) { Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING); }
             } finally { Files.deleteIfExists(temporary); }

@@ -1,4 +1,4 @@
-# MXCloud 启动器（本地版）
+# OML（Open-MXaddon-Launcher）启动器
 
 Minecraft Java 版启动器：安装官方清单中的正式版、快照 / 预发布、历史 Beta / Alpha，
 选择 Fabric、Quilt、Forge、NeoForge，并下载模组、光影、材质与整合包。
@@ -17,12 +17,16 @@ Minecraft Java 版启动器：安装官方清单中的正式版、快照 / 预�
 
 | 文件 | 说明 |
 |---|---|
-| `MXCloud-Setup-1.1.0.exe` | 安装包（推荐）：安装向导、开始菜单/桌面快捷方式、完整性校验、自带卸载程序 |
-| `MXCloud-Launcher-1.1.0-portable.zip` | 免安装：解压后直接双击 `MXCloud启动器.exe` |
+| `OML-Setup-1.1.2.exe` | 安装包（推荐）：安装向导、开始菜单/桌面快捷方式、完整性校验、自带卸载程序 |
+| `OML-Launcher-1.1.2-portable.zip` | 免安装：解压后直接双击 `OML启动器.exe` |
 
 两者都自带精简 Java 21 运行时，不需要另装 Java。首次启动后在主页版本列表选
 「添加版本…」选择游戏版本和加载器；勾选自动下载 Java 会另行下载游戏所需的完整 Java，
 历史版本通常使用 Java 8。安装到独立实例，不覆盖已有游戏目录。
+
+OML 是 Open-MXaddon-Launcher 的简写。旧版 MXCloud 用户首次升级请手动下载 OML 安装包，
+安装到原目录即可保留游戏、存档、账号与配置；旧版更新器无法识别新的 OML 安装包名称。
+旧版本的内存配置文件会自动迁移为 `OML-settings.properties`。
 
 ### 游戏、加载器与资源下载
 
@@ -42,7 +46,7 @@ Minecraft Java 版启动器：安装官方清单中的正式版、快照 / 预�
 每个游戏实例位于 `.minecraft/versions/<实例>/instance/`，拥有独立模组、材质、光影和存档。
 
 每次启动都会在后台检查本仓库的最新正式 GitHub Release。发现更高版本且已上传
-`MXCloud-Setup-<版本>.exe` 时，提供「取消」和「立即更新」：取消后继续使用当前版本；
+`OML-Setup-<版本>.exe` 时，提供「取消」和「立即更新」：取消后继续使用当前版本；
 立即更新会直接从 GitHub 下载安装包，校验文件大小及 GitHub 提供的 SHA-256（如有），
 打开安装向导并退出启动器。安装目录预设为当前启动器目录，保留游戏、账号与配置。
 下载中也可取消；检查失败、没有 Release 或已经是最新版本时，正常使用启动器。
@@ -63,8 +67,8 @@ Minecraft Java 版启动器：安装官方清单中的正式版、快照 / 预�
 
 ```
 ┌──────────────────────── 用户侧 ────────────────────────┐
-│  MXCloud启动器.exe                                     │
-│    └─ 自解压到 %TEMP%\MXCloud\<内容哈希>\              │
+│  OML启动器.exe                                     │
+│    └─ 自解压到 %TEMP%\OML\<内容哈希>\              │
 │         └─ 自带 JRE 21 + launcher jar（Swing 界面）    │
 │              └─ GameLauncher：拼 java 命令启动游戏     │
 │                     └─ Minecraft（Fabric / 原版）      │
@@ -122,8 +126,8 @@ MemoryAllocation       内存分配（自动 / 跟随全局 / 自定义）
 .\一键构建.cmd
 
 # 或分步执行
-pwsh -File launcher-java\build.ps1        # → launcher-java\dist + dist-shell\MXCloud启动器.exe
-pwsh -File installer\build-installer.ps1  # → artifacts\installer\MXCloud-Setup-<版本>.exe
+pwsh -File launcher-java\build.ps1        # → launcher-java\dist + dist-shell\OML启动器.exe
+pwsh -File installer\build-installer.ps1  # → artifacts\installer\OML-Setup-<版本>.exe
 ```
 
 产物：
@@ -131,8 +135,8 @@ pwsh -File installer\build-installer.ps1  # → artifacts\installer\MXCloud-Setu
 | 文件 | 说明 |
 |---|---|
 | `launcher-java\dist\` | 运行目录（jar + JNA + 自带 JRE） |
-| `launcher-java\dist-shell\MXCloud启动器.exe` | 单文件版（内嵌运行时，双击即用） |
-| `artifacts\installer\MXCloud-Setup-<版本>.exe` | 安装包（开始菜单/桌面快捷方式、完整性校验、卸载） |
+| `launcher-java\dist-shell\OML启动器.exe` | 单文件版（内嵌运行时，双击即用） |
+| `artifacts\installer\OML-Setup-<版本>.exe` | 安装包（开始菜单/桌面快捷方式、完整性校验、卸载） |
 
 ## 四、启动流程
 

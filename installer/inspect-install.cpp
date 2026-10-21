@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-static const wchar_t* files[]={L"MXCloud启动器.exe",L"使用说明.txt",L"卸载 MXCloud.exe"};
+static const wchar_t* files[]={L"OML启动器.exe",L"使用说明.txt",L"卸载 OML.exe"};
+static const wchar_t* legacyFiles[]={L"MXCloud启动器.exe",L"使用说明.txt",L"卸载 MXCloud.exe"};
 static std::wstring join(const std::wstring& root,const wchar_t* leaf){return root+L"\\"+leaf;}
 static std::wstring version(const std::wstring& file){
     DWORD ignored=0;DWORD size=GetFileVersionInfoSizeW(file.c_str(),&ignored);
@@ -59,12 +60,17 @@ int wmain(int argc,wchar_t** argv){
         fputs("written",stdout);return 0;
     }
     if(mode!=L"inspect")return 2;
+    const wchar_t** inspected=files;
+    if(GetFileAttributesW(join(root,files[0]).c_str())==INVALID_FILE_ATTRIBUTES&&
+       GetFileAttributesW(join(root,legacyFiles[0]).c_str())!=INVALID_FILE_ATTRIBUTES){
+        inspected=legacyFiles;actual=version(join(root,inspected[0]));
+    }
     bool found=GetFileAttributesW(manifest.c_str())!=INVALID_FILE_ATTRIBUTES;
-    for(auto name:files)found=found||GetFileAttributesW(join(root,name).c_str())!=INVALID_FILE_ATTRIBUTES;
+    for(int i=0;i<3;i++)found=found||GetFileAttributesW(join(root,inspected[i]).c_str())!=INVALID_FILE_ATTRIBUTES;
     if(!found){fputs("new",stdout);return 0;}
     auto recorded=field(manifest,L"Install",L"Version");
     bool complete=!actual.empty()&&actual==recorded;
-    for(auto name:files){auto sum=digest(join(root,name));complete=complete&&!sum.empty()&&sum==field(manifest,L"Files",name);}
+    for(int i=0;i<3;i++){auto name=inspected[i];auto sum=digest(join(root,name));complete=complete&&!sum.empty()&&sum==field(manifest,L"Files",name);}
     if(!complete)fputs("repair",stdout);else fputs(actual==expected?"same":"update",stdout);
     return 0;
 }

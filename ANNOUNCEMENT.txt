@@ -1,4 +1,4 @@
-欢迎使用 MXCloud 启动器！
+欢迎使用 OML 启动器！
 
 1.1.0 新增多版本与资源下载：可安装正式版、快照和历史 Beta / Alpha，选择 Fabric、Quilt、Forge、NeoForge，并自动下载匹配的 Java 与 Fabric API。
 

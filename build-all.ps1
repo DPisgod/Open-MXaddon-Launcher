@@ -19,7 +19,7 @@ if ($SkipShell) { $buildArgs += '-SkipShell' }
 & powershell @buildArgs
 if ($LASTEXITCODE -ne 0) { throw '启动器构建失败' }
 
-$launcher = Join-Path $Root 'MXCloud单文件版\MXCloud启动器.exe'
+$launcher = Join-Path $Root 'OML单文件版\OML启动器.exe'
 
 if ($SkipInstaller) {
     Write-Host "`n（-SkipInstaller 已跳过安装包）"

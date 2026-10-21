@@ -322,7 +322,7 @@ public final class SkinFetcher {
             conn = (HttpURLConnection) u.openConnection();
             conn.setConnectTimeout(TIMEOUT_MS);
             conn.setReadTimeout(TIMEOUT_MS);
-            conn.setRequestProperty("User-Agent", "MXCloud-Launcher/1.0");
+            conn.setRequestProperty("User-Agent", "OML-Launcher/1.0");
             conn.setInstanceFollowRedirects(true);
             if (conn.getResponseCode() != 200) {
                 return null;

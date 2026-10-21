@@ -1,12 +1,12 @@
 ﻿# build_shell.ps1 —— 构建自解压 exe 壳子
 #
 # 输入：dist\ 目录（jar / Libraries / jna*.jar / runtime / 使用说明.txt）
-# 输出：dist-shell\MXCloud启动器.exe  （单文件，内嵌全部运行时）
+# 输出：dist-shell\OML启动器.exe  （单文件，内嵌全部运行时）
 #
 # 原理：
 #   1) 把 dist\ 内容打成 payload.zip（不含 .minecraft）
 #   2) 生成 payload.rc（把 zip 作为 RCDATA 资源编译进 exe）
-#   3) 编译 MXCloudLauncher.cpp + payload.rc -> exe
+#   3) 编译 OMLLauncher.cpp + payload.rc -> exe
 #
 # 注意：exe 内嵌的是**启动器运行时**，不含任何 mod 本体。
 
@@ -20,7 +20,7 @@ $ErrorActionPreference = "Stop"
 $Root = $PSScriptRoot
 if (-not $Root) { $Root = (Get-Location).Path }
 $Parent = Split-Path $Root -Parent
-$versionFile = Join-Path $Parent 'src\main\resources\mxcloud-version.properties'
+$versionFile = Join-Path $Parent 'src\main\resources\OML-version.properties'
 $releaseVersion = ((Get-Content -LiteralPath $versionFile | Where-Object { $_ -match '^version=' }) -replace '^version=','').Trim()
 if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid shared launcher version' }
 $numericVersion = ($releaseVersion -replace '\.',',') + ',0'
@@ -37,7 +37,7 @@ if (-not (Test-Path (Join-Path $DistDir "mxaddon-launcher.jar"))) {
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $versionArchive = [IO.Compression.ZipFile]::OpenRead((Join-Path $DistDir 'mxaddon-launcher.jar'))
 try {
-    $versionEntry = $versionArchive.GetEntry('mxcloud-version.properties')
+    $versionEntry = $versionArchive.GetEntry('OML-version.properties')
     if (-not $versionEntry) { throw 'Launcher JAR has no shared release version; rebuild Java first' }
     $versionReader = [IO.StreamReader]::new($versionEntry.Open())
     try { $jarVersionText = $versionReader.ReadToEnd() } finally { $versionReader.Dispose() }
@@ -106,7 +106,7 @@ $IDR_PAYLOAD_ZIP = 1001
 $ids = @"
 // 自动生成 —— 请勿手改
 #pragma once
-#define MXCLOUD_BUILD_ID "$buildId"
+#define OML_BUILD_ID "$buildId"
 #define IDR_PAYLOAD_ZIP  $IDR_PAYLOAD_ZIP
 
 "@
@@ -134,9 +134,9 @@ $rc += "  BLOCK `"StringFileInfo`"`r`n"
 $rc += "  BEGIN`r`n"
 $rc += "    BLOCK `"080404b0`"`r`n"
 $rc += "    BEGIN`r`n"
-$rc += "      VALUE `"FileDescription`", `"MXCloud 启动器`"`r`n"
-$rc += "      VALUE `"ProductName`", `"MXCloud Launcher`"`r`n"
-$rc += "      VALUE `"CompanyName`", `"MXCloud`"`r`n"
+$rc += "      VALUE `"FileDescription`", `"OML 启动器`"`r`n"
+$rc += "      VALUE `"ProductName`", `"OML Launcher`"`r`n"
+$rc += "      VALUE `"CompanyName`", `"OML`"`r`n"
 $rc += "      VALUE `"FileVersion`", `"$releaseVersion.0`"`r`n"
 $rc += "      VALUE `"ProductVersion`", `"$releaseVersion`"`r`n"
 $rc += "    END`r`n"
@@ -229,11 +229,11 @@ Write-Host "`n=== [5/6] 编译 exe ===" -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
-$src = Join-Path $Root "MXCloudLauncher.cpp"
+$src = Join-Path $Root "OMLLauncher.cpp"
 if (-not (Test-Path $src)) { throw "缺少源码: $src" }
 
-$exeOut = Join-Path $OutDir "MXCloud启动器.exe"
-$buildLog = Join-Path $env:TEMP "mxcloud_shell_build.log"
+$exeOut = Join-Path $OutDir "OML启动器.exe"
+$buildLog = Join-Path $env:TEMP "oml_shell_build.log"
 
 # 直接用 PowerShell 调用工具链（环境变量已从 vcvars 继承）。
 # .rc 必须先用 rc.exe 编译成 .res，cl 不能直接吃 .rc。
@@ -252,7 +252,7 @@ try {
 
     # 2) 编译 + 链接
     & cl.exe /nologo /utf-8 /O2 /MT /EHsc /std:c++17 /DUNICODE /D_UNICODE `
-        "/I$Root" MXCloudLauncher.cpp payload.res `
+        "/I$Root" OMLLauncher.cpp payload.res `
         /link /SUBSYSTEM:WINDOWS "/OUT:$exeOut" `
         user32.lib shlwapi.lib shell32.lib 2>&1 |
         Tee-Object -FilePath $buildLog -Append
@@ -273,13 +273,13 @@ Write-Host "exe 已生成: $exeMb MB"
 Write-Host "`n=== [6/6] 组装交付物 ===" -ForegroundColor Cyan
 
 # 6a. 单文件版目录（exe + 说明 + 空 .minecraft）
-$SingleDir = Join-Path (Split-Path $Root -Parent) "..\MXCloud单文件版"
+$SingleDir = Join-Path (Split-Path $Root -Parent) "..\OML单文件版"
 $SingleDir = [System.IO.Path]::GetFullPath($SingleDir)
 $deliveryRoot = [System.IO.Path]::GetFullPath((Join-Path $Parent '..'))
 if (-not $SingleDir.StartsWith($deliveryRoot + '\', [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe delivery path' }
 # Preserve any game files a user already placed beside a previous build.
 New-Item -ItemType Directory -Force -Path $SingleDir | Out-Null
-Copy-Item $exeOut (Join-Path $SingleDir "MXCloud启动器.exe") -Force
+Copy-Item $exeOut (Join-Path $SingleDir "OML启动器.exe") -Force
 New-Item -ItemType Directory -Force -Path (Join-Path $SingleDir ".minecraft\versions") | Out-Null
 if (Test-Path (Join-Path $DistDir "使用说明.txt")) {
     Copy-Item (Join-Path $DistDir "使用说明.txt") (Join-Path $SingleDir "使用说明.txt") -Force
@@ -287,12 +287,12 @@ if (Test-Path (Join-Path $DistDir "使用说明.txt")) {
 Write-Host "单文件版目录: $SingleDir"
 
 # 6b. zip（便于分发）
-$SingleZip = Join-Path (Split-Path (Split-Path $Root -Parent) -Parent) "MXCloud单文件版.zip"
+$SingleZip = Join-Path (Split-Path (Split-Path $Root -Parent) -Parent) "OML单文件版.zip"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path $SingleZip) { Remove-Item $SingleZip -Force }
 $archive = [System.IO.Compression.ZipFile]::Open($SingleZip, [System.IO.Compression.ZipArchiveMode]::Create)
 try {
-    foreach ($name in @('MXCloud启动器.exe','使用说明.txt')) {
+    foreach ($name in @('OML启动器.exe','使用说明.txt')) {
         $file = Join-Path $SingleDir $name
         if (Test-Path -LiteralPath $file) { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$file,$name) | Out-Null }
     }
@@ -302,8 +302,8 @@ $zipMb = [math]::Round((Get-Item $SingleZip).Length / 1MB, 1)
 Write-Host "分发包: $SingleZip ($zipMb MB)"
 
 # 6c. 清理编译中间产物（保留 payload_ids.h）
-foreach ($f in @("payload.zip", "payload.rc", "MXCloudLauncher.obj", "payload.res",
-                 "MXCloudLauncher.res", "vc140.pdb", "MXCloudLauncher.pdb")) {
+foreach ($f in @("payload.zip", "payload.rc", "OMLLauncher.obj", "payload.res",
+                 "OMLLauncher.res", "vc140.pdb", "OMLLauncher.pdb")) {
     $p = Join-Path $Root $f
     if (Test-Path $p) { Remove-Item $p -Force -EA SilentlyContinue }
 }
@@ -317,5 +317,5 @@ Write-Host "  单文件版（可直接测试）: $SingleDir"
 Write-Host "  分发包                : $SingleZip  ($zipMb MB)"
 Write-Host "  内容版本              : $buildId"
 Write-Host ""
-Write-Host "用户目录里只有：MXCloud启动器.exe + .minecraft\ + 使用说明.txt"
-Write-Host "运行时会自动释放到 %TEMP%\MXCloud\$buildId\（用户看不到）。"
+Write-Host "用户目录里只有：OML启动器.exe + .minecraft\ + 使用说明.txt"
+Write-Host "运行时会自动释放到 %TEMP%\OML\$buildId\（用户看不到）。"

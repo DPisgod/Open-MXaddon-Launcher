@@ -465,7 +465,7 @@ public final class MicrosoftLogin {
         HttpURLConnection c = (HttpURLConnection) u.openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(20000);
-        c.setRequestProperty("User-Agent", "MXCloud-Launcher/1.0");
+        c.setRequestProperty("User-Agent", "OML-Launcher/1.0");
         c.setInstanceFollowRedirects(true);
         return c;
     }

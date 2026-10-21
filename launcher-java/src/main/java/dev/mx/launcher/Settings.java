@@ -61,7 +61,7 @@ public final class Settings {
         p.setProperty("offlineName", offlineName == null ? "" : offlineName);
         p.setProperty("lastVersion", lastVersion == null ? "" : lastVersion);
         try (OutputStream out = Files.newOutputStream(LauncherPaths.dataFile(home,FILE))) {
-            p.store(out, "MXCloud launcher settings");
+            p.store(out, "OML launcher settings");
         } catch (IOException ignored) {
         }
     }

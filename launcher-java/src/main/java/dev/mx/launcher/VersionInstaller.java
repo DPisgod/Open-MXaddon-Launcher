@@ -13,7 +13,7 @@ import java.util.zip.*;
 
 /** Installs Windows x64 game instances from publisher metadata, committing only after verification. */
 final class VersionInstaller {
-    static final String MINECRAFT="1.21.1",LOADER="0.19.3",ID="1.21.1-MXCloud";
+    static final String MINECRAFT="1.21.1",LOADER="0.19.3",ID="1.21.1-OML";
     record Progress(String message,int completed,int total,boolean notice){
         Progress(String message,int completed,int total){this(message,completed,total,false);}
     }

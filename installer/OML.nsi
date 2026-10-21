@@ -21,37 +21,39 @@ SetCompressorDictSize 32
   !define APP_VERSION "1.0.0"
 !endif
 
-!define PRODUCT_KEY "Software\MXCloud\Launcher"
-!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MXCloudLauncher"
-!define APP_EXE "MXCloud启动器.exe"
-!define APP_UNINSTALLER "卸载 MXCloud.exe"
-!define MUI_ICON "assets\MXCloud.ico"
-!define MUI_UNICON "assets\MXCloud.ico"
+!define PRODUCT_KEY "Software\OML\Launcher"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OMLLauncher"
+!define LEGACY_PRODUCT_KEY "Software\MXCloud\Launcher"
+!define LEGACY_UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MXCloudLauncher"
+!define APP_EXE "OML启动器.exe"
+!define APP_UNINSTALLER "卸载 OML.exe"
+!define MUI_ICON "assets\OML.ico"
+!define MUI_UNICON "assets\OML.ico"
 !define MUI_WELCOMEPAGE_TITLE "$InstallTitle"
 !define MUI_WELCOMEPAGE_TEXT "$InstallMessage"
-!define MUI_DIRECTORYPAGE_TEXT_TOP "选择 MXCloud 的安装位置。游戏版本、账号和配置会保存在此目录中。"
-!define MUI_FINISHPAGE_TITLE "MXCloud 已安装"
-!define MUI_FINISHPAGE_TEXT "安装已完成。你可以从桌面或开始菜单启动 MXCloud。"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "选择 OML 的安装位置。游戏版本、账号和配置会保存在此目录中。"
+!define MUI_FINISHPAGE_TITLE "OML 已安装"
+!define MUI_FINISHPAGE_TEXT "安装已完成。你可以从桌面或开始菜单启动 OML。"
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_FUNCTION LaunchMXCloud
-!define MUI_FINISHPAGE_RUN_TEXT "启动 MXCloud"
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchOML
+!define MUI_FINISHPAGE_RUN_TEXT "启动 OML"
 !define MUI_FINISHPAGE_RUN_NOTCHECKED
 !define MUI_UNCONFIRMPAGE_TEXT_TOP "将永久删除整个安装文件夹，包含游戏、存档、账号、配置、皮肤和壁纸，并清空当前用户的启动器运行时缓存。$\r$\n$\r$\n需要保留的文件请先备份。请先关闭启动器和游戏。"
 
-Name "MXCloud"
-Caption "MXCloud 安装向导"
+Name "OML"
+Caption "OML 安装向导"
 OutFile "${OUTPUT_FILE}"
-InstallDir "D:\Mx-Cloud"
+InstallDir "D:\OML"
 InstallDirRegKey HKCU "${PRODUCT_KEY}" "InstallDir"
-BrandingText "MXCloud"
+BrandingText "OML"
 ShowInstDetails show
 ShowUninstDetails show
 VIProductVersion "${APP_VERSION}.0"
-VIAddVersionKey /LANG=2052 "ProductName" "MXCloud 安装程序"
-VIAddVersionKey /LANG=2052 "FileDescription" "MXCloud 安装向导"
+VIAddVersionKey /LANG=2052 "ProductName" "OML 安装程序"
+VIAddVersionKey /LANG=2052 "FileDescription" "OML 安装向导"
 VIAddVersionKey /LANG=2052 "FileVersion" "${APP_VERSION}"
 VIAddVersionKey /LANG=2052 "ProductVersion" "${APP_VERSION}"
-VIAddVersionKey /LANG=2052 "LegalCopyright" "MXCloud"
+VIAddVersionKey /LANG=2052 "LegalCopyright" "OML"
 
 Var DesktopChoice
 Var DesktopCheckbox
@@ -66,6 +68,7 @@ Var InstallMessage
 Var ScanState
 Var ExistingVersion
 Var CleanOriginal
+Var LegacyInstallDir
 
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE DirectoryLeave
@@ -81,6 +84,14 @@ Page custom OptionsCreate OptionsLeave
 Function .onInit
   SetShellVarContext current
   SetRegView 64
+  ReadRegStr $LegacyInstallDir HKCU "${LEGACY_PRODUCT_KEY}" "InstallDir"
+  ReadRegStr $0 HKCU "${PRODUCT_KEY}" "InstallDir"
+  ; NSIS has already applied /D= here; preserve an explicit installation target.
+  ${If} $0 == ""
+  ${AndIf} $INSTDIR == "D:\OML"
+  ${AndIf} $LegacyInstallDir != ""
+    StrCpy $INSTDIR $LegacyInstallDir
+  ${EndIf}
   ${IfNot} ${RunningX64}
     MessageBox MB_ICONSTOP "此版本需要 64 位 Windows 10 或更高版本。" /SD IDOK
     SetErrorLevel 1
@@ -94,6 +105,10 @@ Function .onInit
   StrCpy $DesktopChoice ${BST_CHECKED}
   ClearErrors
   ReadRegDWORD $CommandValue HKCU "${PRODUCT_KEY}" "DesktopShortcut"
+  ${If} ${Errors}
+    ClearErrors
+    ReadRegDWORD $CommandValue HKCU "${LEGACY_PRODUCT_KEY}" "DesktopShortcut"
+  ${EndIf}
   ${IfNot} ${Errors}
     StrCpy $DesktopChoice $CommandValue
   ${EndIf}
@@ -133,17 +148,17 @@ Function DetectInstallation
     StrCpy $ScanState "repair"
   ${EndIf}
   ${If} $ScanState == "update"
-    StrCpy $InstallTitle "更新 MXCloud"
-    StrCpy $InstallMessage "已检测到完整的 MXCloud 安装。$\r$\n$\r$\n已安装版本：$ExistingVersion$\r$\n本次版本：${APP_VERSION}$\r$\n$\r$\n将更新程序，保留游戏、账号、存档和壁纸。"
+    StrCpy $InstallTitle "更新 OML"
+    StrCpy $InstallMessage "已检测到完整的 OML 安装。$\r$\n$\r$\n已安装版本：$ExistingVersion$\r$\n本次版本：${APP_VERSION}$\r$\n$\r$\n将更新程序，保留游戏、账号、存档和壁纸。"
   ${ElseIf} $ScanState == "same"
-    StrCpy $InstallTitle "更新 / 重新安装 MXCloud"
-    StrCpy $InstallMessage "已检测到完整的 MXCloud ${APP_VERSION}，版本一致。$\r$\n$\r$\n你可以重新安装当前版本；游戏、账号、存档和壁纸会保留。"
+    StrCpy $InstallTitle "更新 / 重新安装 OML"
+    StrCpy $InstallMessage "已检测到完整的 OML ${APP_VERSION}，版本一致。$\r$\n$\r$\n你可以重新安装当前版本；游戏、账号、存档和壁纸会保留。"
   ${ElseIf} $ScanState == "repair"
-    StrCpy $InstallTitle "修复 MXCloud"
-    StrCpy $InstallMessage "检测到本地程序文件缺失、校验不一致或版本信息不匹配。$\r$\n$\r$\n将修复为 MXCloud ${APP_VERSION}，保留游戏、账号、存档和壁纸。"
+    StrCpy $InstallTitle "修复 OML"
+    StrCpy $InstallMessage "检测到本地程序文件缺失、校验不一致或版本信息不匹配。$\r$\n$\r$\n将修复为 OML ${APP_VERSION}，保留游戏、账号、存档和壁纸。"
   ${Else}
-    StrCpy $InstallTitle "欢迎安装 MXCloud ${APP_VERSION}"
-    StrCpy $InstallMessage "将 MXCloud 启动器安装到你的电脑。$\r$\n$\r$\n你可以选择安装位置，以及是否创建桌面快捷方式。$\r$\n$\r$\n启动器自带运行环境，无需另外安装 Java。"
+    StrCpy $InstallTitle "欢迎安装 OML ${APP_VERSION}"
+    StrCpy $InstallMessage "将 OML 启动器安装到你的电脑。$\r$\n$\r$\n你可以选择安装位置，以及是否创建桌面快捷方式。$\r$\n$\r$\n启动器自带运行环境，无需另外安装 Java。"
   ${EndIf}
 FunctionEnd
 
@@ -172,12 +187,12 @@ Function OptionsLeave
   ${NSD_GetState} $DesktopCheckbox $DesktopChoice
 FunctionEnd
 
-Function LaunchMXCloud
+Function LaunchOML
   SetOutPath "$INSTDIR"
   Exec '"$INSTDIR\${APP_EXE}"'
 FunctionEnd
 
-Section "MXCloud" Main
+Section "OML" Main
   SetOutPath "$INSTDIR"
   SetOverwrite on
   ClearErrors
@@ -205,22 +220,22 @@ Section "MXCloud" Main
     SetErrorLevel 1
     Abort
   ${EndIf}
-  CreateDirectory "$SMPROGRAMS\MXCloud"
+  CreateDirectory "$SMPROGRAMS\OML"
   ; build_shell.ps1 embeds two identical Mx icon groups. Recreate the links
   ; and use ordinal 1 to avoid the old ordinal 0 desktop icon cache.
-  Delete "$SMPROGRAMS\MXCloud\MXCloud.lnk"
-  CreateShortCut "$SMPROGRAMS\MXCloud\MXCloud.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
-  CreateShortCut "$SMPROGRAMS\MXCloud\卸载 MXCloud.lnk" "$INSTDIR\${APP_UNINSTALLER}" "" "$INSTDIR\${APP_UNINSTALLER}" 0
+  Delete "$SMPROGRAMS\OML\OML.lnk"
+  CreateShortCut "$SMPROGRAMS\OML\OML.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
+  CreateShortCut "$SMPROGRAMS\OML\卸载 OML.lnk" "$INSTDIR\${APP_UNINSTALLER}" "" "$INSTDIR\${APP_UNINSTALLER}" 0
   ${If} $DesktopChoice == ${BST_CHECKED}
-    Delete "$DESKTOP\MXCloud.lnk"
-    CreateShortCut "$DESKTOP\MXCloud.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
+    Delete "$DESKTOP\OML.lnk"
+    CreateShortCut "$DESKTOP\OML.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
   ${EndIf}
   WriteRegStr HKCU "${PRODUCT_KEY}" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${PRODUCT_KEY}" "LastInstallMode" "$ScanState"
   WriteRegDWORD HKCU "${PRODUCT_KEY}" "DesktopShortcut" $DesktopChoice
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "MXCloud"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "OML"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "MXCloud"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "OML"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" '$\"$INSTDIR\${APP_EXE}$\",1'
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\${APP_UNINSTALLER}$\"'
@@ -230,9 +245,22 @@ Section "MXCloud" Main
   SectionGetSize ${Main} $0
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "EstimatedSize" $0
   ; Remove only the exact legacy program assets, after shortcuts use embedded icons.
+  Delete "$INSTDIR\MXCloud启动器.exe"
+  Delete "$INSTDIR\卸载 MXCloud.exe"
   Delete "$INSTDIR\MXCloud.ico"
   Delete "$INSTDIR\MXCloud-Mx.ico"
   Delete "$INSTDIR\MXCloud-Mx-4e31b56b8701.ico"
+  ${If} $LegacyInstallDir == $INSTDIR
+    Delete "$DESKTOP\MXCloud.lnk"
+    Delete "$SMPROGRAMS\MXCloud\MXCloud.lnk"
+    Delete "$SMPROGRAMS\MXCloud\卸载 MXCloud.lnk"
+    RMDir "$SMPROGRAMS\MXCloud"
+    DeleteRegKey HKCU "${LEGACY_PRODUCT_KEY}"
+    DeleteRegKey HKCU "${LEGACY_UNINSTALL_KEY}"
+  ${EndIf}
+  Delete "$INSTDIR\OML.ico"
+  Delete "$INSTDIR\OML-Mx.ico"
+  Delete "$INSTDIR\OML-Mx-4e31b56b8701.ico"
 SectionEnd
 
 Function un.onInit
@@ -373,7 +401,7 @@ Section "Uninstall"
     SetErrorLevel 1
     Abort
   ${EndIf}
-  StrCpy $RuntimeTarget "$TEMP\MXCloud"
+  StrCpy $RuntimeTarget "$TEMP\OML"
   StrCpy $CleanTarget $INSTDIR
   Call un.ValidateRoot
   ${If} $CleanSafe != 1
@@ -392,10 +420,10 @@ Section "Uninstall"
   ; remove the original executable and its parent without reboot scheduling.
   IfFileExists "$INSTDIR" incomplete_cleanup
   IfFileExists "$RuntimeTarget" incomplete_cleanup
-  Delete "$DESKTOP\MXCloud.lnk"
-  Delete "$SMPROGRAMS\MXCloud\MXCloud.lnk"
-  Delete "$SMPROGRAMS\MXCloud\卸载 MXCloud.lnk"
-  RMDir "$SMPROGRAMS\MXCloud"
+  Delete "$DESKTOP\OML.lnk"
+  Delete "$SMPROGRAMS\OML\OML.lnk"
+  Delete "$SMPROGRAMS\OML\卸载 OML.lnk"
+  RMDir "$SMPROGRAMS\OML"
   DeleteRegKey HKCU "${UNINSTALL_KEY}"
   DeleteRegKey HKCU "${PRODUCT_KEY}"
   Goto cleanup_finished
