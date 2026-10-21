@@ -10,8 +10,7 @@ import java.util.logging.Logger;
 /**
  * 启动器入口。
  *
- * <p>取得单实例所有权后直接打开主页；启动器只负责版本管理与启动游戏，
- * 不连接任何授权或更新服务。
+ * <p>取得单实例所有权后打开主页，并在后台检查 GitHub Release 更新。
  */
 public final class Main {
     private static SingleInstance instance;
@@ -46,7 +45,7 @@ public final class Main {
         UIManager.put("OptionPane.buttonFont", new Font("Microsoft YaHei UI", Font.PLAIN, 12));
 
         SwingUtilities.invokeLater(() -> {
-            try{LauncherPaths.dataDirectory(LauncherPaths.home());UiTheme.set(Appearance.load(LauncherPaths.home()).theme);LauncherFrame f=new LauncherFrame();mainWindow=f;f.addWindowListener(new java.awt.event.WindowAdapter(){@Override public void windowClosed(java.awt.event.WindowEvent e){instance.close();}});f.setVisible(true);}
+            try{LauncherPaths.dataDirectory(LauncherPaths.home());UiTheme.set(Appearance.load(LauncherPaths.home()).theme);LauncherFrame f=new LauncherFrame();mainWindow=f;f.addWindowListener(new java.awt.event.WindowAdapter(){@Override public void windowClosed(java.awt.event.WindowEvent e){instance.close();}});f.setVisible(true);LauncherUpdateDialog.checkOnStartup(f);}
             catch(java.io.UncheckedIOException e){WindowChrome.prompt(null,"无法整理启动器配置",e.getMessage()+"\n请检查 .min 及旧配置文件的占用和写入权限后重试。",false);}
         });
     }

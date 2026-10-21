@@ -22,6 +22,13 @@ Minecraft **Fabric 1.21.1** 启动器：安装游戏版本、管理账号与 Mod
 两者都自带精简 Java 21 运行时，不需要另装 Java。首次启动后在主页版本列表选
 「添加版本…」一键安装 Minecraft 1.21.1 + Fabric，之后即可点「启动游戏」。
 
+每次启动都会在后台检查本仓库的最新正式 GitHub Release。发现更高版本且已上传
+`MXCloud-Setup-<版本>.exe` 时，提供「取消」和「立即更新」：取消后继续使用当前版本；
+立即更新会直接从 GitHub 下载安装包，校验文件大小及 GitHub 提供的 SHA-256（如有），
+打开安装向导并退出启动器。安装目录预设为当前启动器目录，保留游戏、账号与配置。
+下载中也可取消；检查失败、没有 Release 或已经是最新版本时，正常使用启动器。
+发布时请使用 `v主版本.次版本.修订号` 标签，并将安装包版本与标签保持一致。
+
 ---
 
 ## 一、架构
@@ -39,6 +46,7 @@ Minecraft **Fabric 1.21.1** 启动器：安装游戏版本、管理账号与 Mod
               Mojang（版本清单 / 依赖 / 资源）
               FabricMC meta（加载器 profile）
               Microsoft（正版账号 OAuth，可选）
+              GitHub Releases（启动器检查更新 / 安装包）
 ```
 
 启动器自身不产生任何自有后端请求。
@@ -56,6 +64,8 @@ Minecraft **Fabric 1.21.1** 启动器：安装游戏版本、管理账号与 Mod
 
 ```
 Main.java              入口（单实例、主题、字体）
+GitHubUpdater.java     GitHub Release 检查、安装包下载与完整性校验
+LauncherUpdateDialog  可取消的更新提示、下载进度与安装向导
 LauncherFrame.java     主页：版本列表、账号、壁纸、启动/停止
 GameLauncher.java      纯 Java 启动：读版本 JSON → 拼命令行 → 拉起游戏进程
 VersionInstaller.java  一键安装 Minecraft + Fabric + 资源（SHA-1 校验）
