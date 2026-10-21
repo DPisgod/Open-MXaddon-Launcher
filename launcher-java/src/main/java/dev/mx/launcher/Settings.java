@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * 启动器设置（保存在 {@code <home>\.min\launcher.properties}）。
+ * 启动器设置（保存在 {@code <home>\.minecraft\launcher.properties}）。
  *
  * <p>当前可调项：
  * <ul>

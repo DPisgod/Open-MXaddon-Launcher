@@ -112,6 +112,9 @@ server-backend/irc/obj/
 server-backend/irc/publish*/
 appearance.properties
 announcement.properties
+curseforge-key.dat
+.minecraft/
+.min/
 wallpapers/
 !launcher-java/src/main/resources/wallpapers/
 !launcher-java/src/main/resources/wallpapers/default-landscape.png

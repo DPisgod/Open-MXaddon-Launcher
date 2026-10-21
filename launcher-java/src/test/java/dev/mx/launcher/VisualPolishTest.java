@@ -11,7 +11,7 @@ public final class VisualPolishTest {
  public static void main(String[] args)throws Exception{
   UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());Path home=Files.createTempDirectory("mx-polish-");LauncherPaths.override(home);Path out=Path.of(args[0]);Files.createDirectories(out);
   LauncherFrame[] frame=new LauncherFrame[1];InstallVersionDialog[] dialog=new InstallVersionDialog[1];
-  SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);dialog[0]=new InstallVersionDialog(frame[0],home.resolve(".min"),id->{});dialog[0].addNotify();});
+  SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);dialog[0]=new InstallVersionDialog(frame[0],home.resolve(".minecraft"),id->{});dialog[0].addNotify();});
   Thread.sleep(200);
   SwingUtilities.invokeAndWait(()->{
    for(Window window:new Window[]{frame[0],dialog[0]})checkRounded((RootPaneContainer)window);

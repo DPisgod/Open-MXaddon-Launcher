@@ -24,7 +24,7 @@ public final class AnnouncementFeedTest {
         restart.dismiss(changed);
         check(!new AnnouncementFeed.State(home).shouldShow(changed), "Updated dismissal must also persist");
         check(!restart.shouldShow(AnnouncementFeed.message(" \n\r\n")), "Empty announcement must be hidden");
-        Files.writeString(home.resolve(".min/announcement.properties"), "x=broken\ny=42\ndismissed=unused\n");
+        Files.writeString(home.resolve(".minecraft/announcement.properties"), "x=broken\ny=42\ndismissed=unused\n");
         check(new AnnouncementFeed.State(home).x == -1, "Corrupt position must use default");
 
         AtomicReference<byte[]> response = new AtomicReference<>("在线公告\n第二行".getBytes(StandardCharsets.UTF_8));

@@ -14,7 +14,7 @@ public final class LauncherDesignShot {
         Path home=Path.of(args[0]),out=Path.of(args[1]);Files.createDirectories(home);Files.createDirectories(out);LauncherPaths.override(home);SessionStore.save(home,Session.offline("Seven"));
         Appearance initial=new Appearance();initial.theme="light";initial.save(home);
         if(args.length>2){WallpaperLibrary lib=new WallpaperLibrary(home);if(lib.items().isEmpty())for(String name:new String[]{"静态 预览.PNG","motion.mp4","motion.gif","photo.jpg"})lib.importFile(Path.of(args[2]).resolve(name));}
-        Path version=home.resolve(".min/versions/1.21.1-Fabric 0.19.3");Files.createDirectories(version);Files.writeString(version.resolve("1.21.1-Fabric 0.19.3.json"),"{\"id\":\"1.21.1-Fabric 0.19.3\",\"libraries\":[{\"name\":\"net.fabricmc:fabric-loader:0.19.3\"}]}");Files.write(version.resolve("1.21.1-Fabric 0.19.3.jar"),new byte[0]);
+        Path version=home.resolve(".minecraft/versions/1.21.1-Fabric 0.19.3");Files.createDirectories(version);Files.writeString(version.resolve("1.21.1-Fabric 0.19.3.json"),"{\"id\":\"1.21.1-Fabric 0.19.3\",\"libraries\":[{\"name\":\"net.fabricmc:fabric-loader:0.19.3\"}]}");Files.write(version.resolve("1.21.1-Fabric 0.19.3.jar"),new byte[0]);
         LauncherFrame[] box=new LauncherFrame[1];SwingUtilities.invokeAndWait(()->{box[0]=new LauncherFrame(false);box[0].setVisible(true);});Thread.sleep(500);
         for(String theme:new String[]{"light","dark"}){
             SwingUtilities.invokeAndWait(()->box[0].previewTheme(theme));Thread.sleep(180);shot(box[0],out.resolve("home-"+theme+".png"));

@@ -4,13 +4,13 @@
 // 然后启动图形界面。用户看到的目录里只有：
 //
 //     MXCloud启动器.exe
-//     .min\              （游戏目录，用户自备）
+//     .minecraft\              （游戏目录，用户自备）
 //
 // 设计要点：
 //   * 内嵌内容只有启动器本身：不含游戏、不含任何 mod、不连接授权服务。
 //   * 解压到 %TEMP%\MXCloud\<内容版本>\，用内容哈希做缓存：
 //     版本一致则跳过解压，直接复用，加快二次启动。
-//   * 通过 -Dmxcloud.home=<exe目录> 告诉 Java 侧：.min / 设置 / 皮肤缓存
+//   * 通过 -Dmxcloud.home=<exe目录> 告诉 Java 侧：.minecraft / 设置 / 皮肤缓存
 //     都在 exe 旁边，而不是临时目录。
 //   * 启动后本进程立即退出（不常驻）。
 
@@ -230,7 +230,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
     DWORD wait = extraction.handle ? WaitForSingleObject(extraction.handle, 180000) : WAIT_FAILED;
     extraction.owned = wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED;
     if (!extraction.owned) { fail_box(L"启动器正在准备运行环境，请稍后重试。"); return 1; }
-    const std::wstring home = exe_dir();                 // exe 目录（.min 所在）
+    const std::wstring home = exe_dir();                 // exe 目录（.minecraft 所在）
     log_open(home);
     logf(L"home     = %ls", home.c_str());
 
@@ -299,7 +299,7 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
     }
 
     // 3) 组装命令行
-    //    -Dmxcloud.home 指向 exe 目录；游戏和设置位于 .min，皮肤缓存仍在 exe 旁。
+    //    -Dmxcloud.home 指向 exe 目录；游戏和设置位于 .minecraft，皮肤缓存仍在 exe 旁。
     std::wstring cp = jarPath + L";" + cacheDir + L"\\jna-5.14.0.jar;"
                     + cacheDir + L"\\jna-platform-5.14.0.jar";
 

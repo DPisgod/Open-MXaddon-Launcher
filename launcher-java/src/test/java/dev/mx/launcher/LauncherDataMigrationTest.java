@@ -10,7 +10,7 @@ import com.sun.jna.platform.win32.Crypt32Util;
 public final class LauncherDataMigrationTest {
     static void check(boolean yes,String message){if(!yes)throw new AssertionError(message);}
     public static void main(String[] args)throws Exception{
-        Path home=Files.createTempDirectory("mx-data-migration-");Path data=home.resolve(".min");Files.createDirectories(data.resolve("versions/keep/world"));Files.writeString(data.resolve("versions/keep/world/level.dat"),"world-marker");
+        Path home=Files.createTempDirectory("mx-data-migration-");Path data=home.resolve(".minecraft");Files.createDirectories(data.resolve("versions/keep/world"));Files.writeString(data.resolve("versions/keep/world/level.dat"),"world-marker");
         Files.createDirectories(home.resolve("wallpapers"));Files.writeString(home.resolve("wallpapers/keep.png"),"wallpaper-marker");Files.createDirectories(home.resolve("skins"));Files.writeString(home.resolve("skins/keep.png"),"skin-marker");
         Map<String,byte[]> original=new HashMap<>();
         String account="{\"explicitAccounts\":true,\"accounts\":[{\"name\":\"迁移玩家\",\"premium\":false}]}";
@@ -32,8 +32,8 @@ public final class LauncherDataMigrationTest {
         check(Arrays.equals(current,Files.readAllBytes(data.resolve("launcher.properties"))),"existing destination overwritten");check(!Files.exists(home.resolve("launcher.properties")),"conflict left in root");
         try(var paths=Files.list(data)){Path backup=paths.filter(p->p.getFileName().toString().startsWith(".launcher-migration-")).findFirst().orElseThrow();check(Files.readString(backup.resolve("launcher.properties")).equals("memoryMb=1024\n"),"conflicting old file not preserved");}
         check(Files.readString(data.resolve("versions/keep/world/level.dat")).equals("world-marker")&&Files.readString(home.resolve("wallpapers/keep.png")).equals("wallpaper-marker")&&Files.readString(home.resolve("skins/keep.png")).equals("skin-marker"),"unrelated files modified");
-        Path fresh=Files.createTempDirectory("mx-data-fresh-");SessionStore.save(fresh,Session.offline("新安装"));check(Files.exists(fresh.resolve(".min/session.properties"))&&!Files.exists(fresh.resolve("session.properties")),"fresh install writes to root");
-        Path blocked=Files.createTempDirectory("mx-data-blocked-");Files.writeString(blocked.resolve("accounts.dat"),"untouched");Files.writeString(blocked.resolve(".min"),"blocking-file");boolean failed=false;try{LauncherPaths.dataDirectory(blocked);}catch(java.io.UncheckedIOException expected){failed=true;}check(failed&&Files.readString(blocked.resolve("accounts.dat")).equals("untouched"),"failed migration lost old state");
+        Path fresh=Files.createTempDirectory("mx-data-fresh-");SessionStore.save(fresh,Session.offline("新安装"));check(Files.exists(fresh.resolve(".minecraft/session.properties"))&&!Files.exists(fresh.resolve("session.properties")),"fresh install writes to root");
+        Path blocked=Files.createTempDirectory("mx-data-blocked-");Files.writeString(blocked.resolve("accounts.dat"),"untouched");Files.writeString(blocked.resolve(".minecraft"),"blocking-file");boolean failed=false;try{LauncherPaths.dataDirectory(blocked);}catch(java.io.UncheckedIOException expected){failed=true;}check(failed&&Files.readString(blocked.resolve("accounts.dat")).equals("untouched"),"failed migration lost old state");
         System.out.println("STATE_FIVE_FILES_MIGRATE_DPAPI_READ_WRITE_CONCURRENT_CONFLICT_PRESERVE_OK");System.exit(0);
     }
 }

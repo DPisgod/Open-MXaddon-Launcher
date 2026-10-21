@@ -9,7 +9,10 @@ MXCloud 启动器的界面与启动逻辑，全部为纯 Java 实现。
 | `Main.java` | 入口：单实例、主题、字体、打开主页 |
 | `LauncherFrame.java` | 主页：版本列表、账号切换、壁纸、启动/结束游戏 |
 | `GameLauncher.java` | **启动核心**：解析版本 JSON、拼 java 命令行、拉起游戏进程 |
-| `VersionInstaller.java` | 一键安装 Minecraft 1.21.1 + Fabric 0.19.3 + 资源（SHA-1 校验、重试、缓存） |
+| `VersionInstaller.java` | 官方多版本安装与隔离实例、原生库、资源、重试、缓存及哈希校验 |
+| `DownloadCatalog.java` / `LoaderInstaller.java` | 官方版本与 Fabric / Quilt / Forge / NeoForge 清单和安装 |
+| `ContentCatalog.java` / `ContentBrowserDialog.java` | Modrinth / CurseForge 搜索、文件版本、依赖与资源安装 |
+| `ModpackInstaller.java` / `GameJava.java` | 整合包清单导入与游戏 Java 自动下载 |
 | `VersionScanner.java` / `VersionManager.java` | 版本扫描、删除（移入回收目录） |
 | `MicrosoftLogin.java` | 微软设备码 OAuth 登录（正版账号） |
 | `AccountStore.java` / `Session.java` / `SessionStore.java` | 账号保存（DPAPI 加密）与当前会话 |
@@ -29,7 +32,7 @@ MXCloud 启动器的界面与启动逻辑，全部为纯 Java 实现。
   runtime\                    自带精简 JRE（jlink 生成）
   mxaddon-launcher.jar        启动器本体
   jna-*.jar                   JNA 依赖
-  .min\                       游戏根目录
+  .minecraft\                 游戏与启动器配置目录（旧 .min 自动迁移）
     versions\<版本>\<版本>.json|.jar
     libraries\  assets\  logs\
     session.properties  accounts.dat  launcher.properties  appearance.properties
@@ -38,8 +41,8 @@ MXCloud 启动器的界面与启动逻辑，全部为纯 Java 实现。
 ## 构建
 
 ```powershell
-pwsh -File 打包.ps1              # jar + jlink 运行时 + 单文件 exe
-pwsh -File 打包.ps1 -SkipShell   # 只生成 dist\
+pwsh -File build.ps1              # jar + jlink 运行时 + 单文件 exe
+pwsh -File build.ps1 -SkipShell   # 只生成 dist\
 ```
 
 依赖（JNA 5.14.0）会自动下载到 `lib\`。单文件版本需要 MSVC Build Tools，
@@ -47,6 +50,6 @@ pwsh -File 打包.ps1 -SkipShell   # 只生成 dist\
 
 ## 说明
 
-- 启动器只访问公开源：Mojang 版本清单/资源、FabricMC meta、微软 OAuth。
+- 游戏与资源直接访问官方 Mojang、加载器发布源、Modrinth / CurseForge 与 Adoptium；CurseForge Key 仅本机加密保存。
 - 游戏进程日志：`<游戏目录>\logs\launcher-game.log`。
-- 启动器日志：`.min\logs\launcher.log`。
+- 游戏目录：`.minecraft`；每个新实例独立存放于 `versions/<实例>/instance`。

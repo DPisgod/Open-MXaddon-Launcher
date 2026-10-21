@@ -18,7 +18,7 @@ public final class AccountDesignShot {
             for(Session account:store.available(null)){BufferedImage head=SkinFetcher.gameDefaultHead(gameHome,skins[i++]);if(head!=null)ImageIO.write(head,"png",home.resolve("skins").resolve(SkinFetcher.cacheKey(account)+".png").toFile());}
         }
         Appearance options=new Appearance();options.theme="dark";options.save(home);
-        Path version=home.resolve(".min/versions/1.21.1-Fabric 0.19.3");Files.createDirectories(version);Files.writeString(version.resolve("1.21.1-Fabric 0.19.3.json"),"{\"id\":\"1.21.1-Fabric 0.19.3\",\"libraries\":[{\"name\":\"net.fabricmc:fabric-loader:0.19.3\"}]}");Files.write(version.resolve("1.21.1-Fabric 0.19.3.jar"),new byte[0]);
+        Path version=home.resolve(".minecraft/versions/1.21.1-Fabric 0.19.3");Files.createDirectories(version);Files.writeString(version.resolve("1.21.1-Fabric 0.19.3.json"),"{\"id\":\"1.21.1-Fabric 0.19.3\",\"libraries\":[{\"name\":\"net.fabricmc:fabric-loader:0.19.3\"}]}");Files.write(version.resolve("1.21.1-Fabric 0.19.3.jar"),new byte[0]);
         LauncherFrame[] frame=new LauncherFrame[1];SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);});Thread.sleep(250);
         for(String theme:new String[]{"light","dark"}){
             SwingUtilities.invokeAndWait(()->{MenuSelectionManager.defaultManager().clearSelectedPath();frame[0].previewTheme(theme);frame[0].showAccounts();});Thread.sleep(200);shot(frame[0],out.resolve("account-switcher-"+theme+".png"));

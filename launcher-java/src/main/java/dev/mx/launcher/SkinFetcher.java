@@ -117,10 +117,10 @@ public final class SkinFetcher {
 
     private static BufferedImage fromGameDefault(Path home,String name){
         if(home==null)return null;String key=home.toAbsolutePath()+":"+name;BufferedImage cached=DEFAULT_HEADS.get(key);if(cached!=null)return cached;
-        Path versions=home.resolve(".min/versions");if(!Files.isDirectory(versions))return null;
+        Path versions=home.resolve(".minecraft/versions");if(!Files.isDirectory(versions))return null;
         try(var dirs=Files.list(versions)){
             for(Path version:dirs.filter(Files::isDirectory).toList()){
-                String id=version.getFileName().toString();Path actual=VersionInstaller.gameDirectory(home.resolve(".min"),id);
+                String id=version.getFileName().toString();Path actual=VersionInstaller.gameDirectory(home.resolve(".minecraft"),id);
                 Path jar=actual.resolve("versions").resolve(id).resolve(id+".jar");if(!Files.isRegularFile(jar)||Files.size(jar)<1024*1024)continue;
                 try(ZipFile archive=new ZipFile(jar.toFile())){var entry=archive.getEntry("assets/minecraft/textures/entity/player/wide/"+name+".png");if(entry==null)continue;
                     try(InputStream in=archive.getInputStream(entry)){BufferedImage raw=ImageIO.read(in);if(raw!=null){BufferedImage head=cropHead(raw);DEFAULT_HEADS.put(key,head);return head;}}

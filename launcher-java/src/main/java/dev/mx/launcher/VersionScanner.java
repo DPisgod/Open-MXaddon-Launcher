@@ -11,13 +11,13 @@ import java.util.List;
 /**
  * 游戏版本扫描。
  *
- * <p><b>只认启动器目录下的 {@code .min\versions\*} 子目录名</b>，
+ * <p><b>只认启动器目录下的 {@code .minecraft\versions\*} 子目录名</b>，
  * 不扫描 {\@code %APPDATA%\.minecraft} 或其它任何位置。
  *
  * <p>目录结构假定为：
  *
  * <pre>
- *   &lt;启动器目录&gt;\.min\
+ *   &lt;启动器目录&gt;\.minecraft\
  *       ├── versions\
  *       │     ├── 1.20.1\        ← 版本名取自这里的目录名
  *       │     ├── 1.20.4\
@@ -34,7 +34,7 @@ public final class VersionScanner {
     /**
      * 扫描版本列表，按版本号从新到旧排序。
      *
-     * @param gameRoot 游戏根目录（即 {@code .min}）
+     * @param gameRoot 游戏根目录（即 {@code .minecraft}）
      * @return 版本目录名列表；目录不存在时返回空列表
      */
     public static List<String> scan(Path gameRoot) {

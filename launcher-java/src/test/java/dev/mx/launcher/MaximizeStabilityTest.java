@@ -53,6 +53,6 @@ public final class MaximizeStabilityTest {
                 System.out.println("WORK_AREA_"+(animated?"VIDEO_":"STATIC_")+theme+"_HEARTBEAT_"+pulses.get()+"_OK");
             }finally{SwingUtilities.invokeAndWait(()->{if(heartbeat[0]!=null)heartbeat[0].stop();if(frame[0]!=null)frame[0].dispose();});}
         }
-        check(errors.isEmpty(),"unhandled UI errors: "+errors);String log=Files.readString(home.resolve(".min/logs/launcher.log"));check(!log.contains("uncaught on "),"unhandled errors were logged");check(log.contains("d3d=false")&&log.contains("window=work-area")&&log.contains("window=restored"),"diagnostic log missing rendering/sizing records");System.out.println("GDI_SAFE_MAXIMIZE_RESTORE_"+transitions+"_TRANSITIONS_VIDEO_THEMES_MINIMIZE_CAPTURE_OK");System.exit(0);
+        check(errors.isEmpty(),"unhandled UI errors: "+errors);String log=Files.readString(home.resolve(".minecraft/logs/launcher.log"));check(!log.contains("uncaught on "),"unhandled errors were logged");check(log.contains("d3d=false")&&log.contains("window=work-area")&&log.contains("window=restored"),"diagnostic log missing rendering/sizing records");System.out.println("GDI_SAFE_MAXIMIZE_RESTORE_"+transitions+"_TRANSITIONS_VIDEO_THEMES_MINIMIZE_CAPTURE_OK");System.exit(0);
     }
 }

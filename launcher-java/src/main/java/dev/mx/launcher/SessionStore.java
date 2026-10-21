@@ -8,7 +8,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.Properties;
 
 /**
- * 会话持久化（{@code <home>\.min\session.properties}）。
+ * 会话持久化（{@code <home>\.minecraft\session.properties}）。
  *
  * <p>正版令牌存本地磁盘，因此文件权限尽量收紧（Windows 上为当前用户目录，
  * 已是用户私有；POSIX 上设为 600）。

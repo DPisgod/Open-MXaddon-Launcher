@@ -1,207 +1,116 @@
 package dev.mx.launcher;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.io.*;
 import java.nio.file.*;
-import java.security.MessageDigest;
 import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.regex.*;
+import java.util.zip.*;
 
-/**
- * 直接用 java 命令启动 Minecraft（原版 / Fabric）。
- *
- * <p>职责只有一件事：按版本 JSON 拼出完整的 JVM 命令行并拉起游戏进程。
- * 不下载任何内容、不解密、不注入：启动器只做「读取本地版本 → 启动游戏」。
- */
+/** Publisher launch arguments, including historical positional arguments and loader JVM arguments. */
 final class GameLauncher {
-
     private GameLauncher() {}
-
-    /**
-     * 启动游戏。
-     *
-     * @param gameDir  游戏目录（独立实例时为 {@code .../<版本>/instance}）
-     * @param version  版本名（目录名，与 {@code versions/<版本>/<版本>.json} 对应）
-     * @param account  已选择的游戏账号（正版或离线）
-     * @param memoryMb 堆上限（MB）
-     * @return 游戏进程 PID
-     */
-    static int launch(Path gameDir, String version, Session account, int memoryMb) throws Exception {
-        Path root = gameDir.toAbsolutePath().normalize();
-        if (version == null || version.isBlank() || version.contains("/") || version.contains("\\")) {
-            throw new IOException("请选择有效的游戏版本");
-        }
-        Path versionDir = root.resolve("versions").resolve(version).normalize();
-        if (!versionDir.getParent().equals(root.resolve("versions").normalize())) {
-            throw new IOException("无效的版本目录");
-        }
-        Path versionJson = versionDir.resolve(version + ".json");
-        Path gameJar = versionDir.resolve(version + ".jar");
-        if (!Files.isRegularFile(versionJson)) throw new IOException("版本缺少 " + version + ".json，请重新安装该版本");
-        if (!Files.isRegularFile(gameJar)) throw new IOException("版本缺少 " + version + ".jar，请重新安装该版本");
-
-        Map<String, Object> meta = Json.parseObject(Files.readString(versionJson, StandardCharsets.UTF_8));
-        String mainClass = VersionInstaller.str(meta, "mainClass");
-        if (mainClass.isBlank()) throw new IOException("版本缺少启动主类");
-
-        Path libraries = root.resolve("libraries");
-        List<Path> classpath = new ArrayList<>();
-        classpath.add(gameJar);
-        boolean glfw = false;
-        for (Object entry : VersionInstaller.list(meta.get("libraries"))) {
-            Map<String, Object> library = VersionInstaller.map(entry);
-            if (!VersionInstaller.windowsLibrary(library)) continue;
-            Map<String, Object> artifact = VersionInstaller.map(VersionInstaller.map(library.get("downloads")).get("artifact"));
-            String path = VersionInstaller.str(artifact, "path");
-            if (path.isBlank()) continue;
-            Path file = VersionInstaller.safe(libraries, path);
-            if (!Files.isRegularFile(file)) throw new IOException("缺少游戏依赖：" + path + "，请重新安装该版本");
-            classpath.add(file);
-            String coordinate = VersionInstaller.str(library, "name");
-            if (coordinate.contains("natives-windows") || coordinate.contains("lwjgl") || coordinate.contains("glfw")) glfw = true;
-        }
-        if (!glfw) throw new IOException("版本依赖不完整（缺少 Windows 原生库），请重新安装该版本");
-
-        Path natives = ensureNatives(root, versionDir, version, classpath);
-
-        Path assets = root.resolve("assets");
-        String assetsIndex = VersionInstaller.str(VersionInstaller.map(meta.get("assetIndex")), "id");
-        if (assetsIndex.isBlank()) assetsIndex = "legacy";
-
-        List<String> command = new ArrayList<>();
-        command.add(javaBinary());
-        command.add("-Xms1024M");
-        command.add("-Xmx" + Math.max(1024, memoryMb) + "M");
-        command.add("-Dfile.encoding=UTF-8");
-        command.add("-Dstdout.encoding=UTF-8");
-        command.add("-Dstderr.encoding=UTF-8");
-        command.add("-Djdk.lang.Process.allowAmbiguousCommands=true");
-        command.add("-Dlog4j2.formatMsgNoLookups=true");
-        command.add("-Djava.library.path=" + natives);
-        command.add("-Djna.tmpdir=" + natives);
-        command.add("-Dorg.lwjgl.system.SharedLibraryExtractPath=" + natives);
-        command.add("-Dio.netty.native.workdir=" + natives);
-        // G1：低延迟，接近原启动链的参数
-        command.add("-XX:+UnlockExperimentalVMOptions");
-        command.add("-XX:+UseG1GC");
-        command.add("-XX:G1NewSizePercent=20");
-        command.add("-XX:G1ReservePercent=20");
-        command.add("-XX:G1HeapRegionSize=32M");
-        command.add("-XX:MaxGCPauseMillis=50");
-        command.add("-XX:+PerfDisableSharedMem");
-        command.add("-cp");
-        command.add(String.join(java.io.File.pathSeparator, classpath.stream().map(Path::toString).toList()));
-        command.add(mainClass);
-        command.add("--username");
-        command.add(account.name);
-        command.add("--version");
-        command.add(version);
-        command.add("--gameDir");
-        command.add(root.toString());
-        command.add("--assetsDir");
-        command.add(assets.toString());
-        command.add("--assetIndex");
-        command.add(assetsIndex);
-        command.add("--width");
-        command.add("854");
-        command.add("--height");
-        command.add("480");
-        command.add("--versionType");
-        command.add("release");
-        if (account.premium && account.accessToken != null && !account.accessToken.isBlank()) {
-            command.add("--uuid");
-            command.add(account.uuid == null || account.uuid.isBlank() ? offlineUuid(account.name) : account.uuid.replace("-", ""));
-            command.add("--accessToken");
-            command.add(account.accessToken);
-            command.add("--userType");
-            command.add("msa");
-        } else {
-            command.add("--uuid");
-            command.add(offlineUuid(account.name));
-            command.add("--accessToken");
-            command.add("0");
-            command.add("--userType");
-            command.add("legacy");
-        }
-
-        Path logs = root.resolve("logs");
-        Files.createDirectories(logs);
-        Path log = logs.resolve("launcher-game.log");
-        ProcessBuilder builder = new ProcessBuilder(command);
-        builder.directory(root.toFile());
-        builder.redirectErrorStream(true);
-        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(log.toFile()));
-        Process process = builder.start();
-        try (OutputStream stdin = process.getOutputStream()) {
-            stdin.close();
-        } catch (IOException ignored) {
-        }
-        return (int) process.pid();
+    static int launch(Path gameDir,String version,Session account,int memoryMb)throws Exception{
+        Path root=gameDir.toAbsolutePath().normalize();List<String> command=command(root,version,account,memoryMb);
+        Path logs=root.resolve("logs");Files.createDirectories(logs);
+        Process process=new ProcessBuilder(command).directory(root.toFile()).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(logs.resolve("launcher-game.log").toFile())).start();
+        process.getOutputStream().close();return (int)process.pid();
     }
-
-    /**
-     * 优先使用启动器自带的精简 JRE；其次用「运行启动器自身的那个 JVM」
-     * （保证游戏与启动器 Java 版本一致）；最后才回退 JAVA_HOME / 系统 javaw。
-     */
-    static String javaBinary() {
-        Path bundled = LauncherPaths.home().resolve("runtime").resolve("bin").resolve("javaw.exe");
-        if (Files.isRegularFile(bundled)) return bundled.toAbsolutePath().toString();
-        String javaHome = System.getProperty("java.home");
-        if (javaHome != null && !javaHome.isBlank()) {
-            Path candidate = Path.of(javaHome).resolve("bin").resolve("javaw.exe");
-            if (Files.isRegularFile(candidate)) return candidate.toAbsolutePath().toString();
-        }
-        String home = System.getenv("JAVA_HOME");
-        if (home != null && !home.isBlank()) {
-            Path candidate = Path.of(home).resolve("bin").resolve("javaw.exe");
-            if (Files.isRegularFile(candidate)) return candidate.toAbsolutePath().toString();
-        }
-        return "javaw";
-    }
-
-    /**
-     * 原生库目录：已是现成目录就直接用，否则从带 {@code natives-windows} 的依赖包里解出 DLL。
-     */
-    private static Path ensureNatives(Path root, Path versionDir, String version, List<Path> classpath) throws IOException {
-        Path installed = versionDir.resolve(version + "-natives");
-        if (Files.isRegularFile(installed.resolve("glfw.dll"))) return installed;
-        Path shared = root.resolve("natives");
-        if (Files.isRegularFile(shared.resolve("glfw.dll"))) return shared;
-        Files.createDirectories(installed);
-        for (Path jar : classpath) {
-            if (!jar.getFileName().toString().contains("natives-windows")) continue;
-            try (ZipFile archive = new ZipFile(jar.toFile())) {
-                for (ZipEntry entry : Collections.list(archive.entries())) {
-                    String name = entry.getName();
-                    if (entry.isDirectory() || !name.toLowerCase(Locale.ROOT).endsWith(".dll")) continue;
-                    Path target = installed.resolve(Path.of(name).getFileName().toString());
-                    try (var input = archive.getInputStream(entry)) {
-                        Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                }
+    static List<String> command(Path root,String version,Session account,int memoryMb)throws Exception{
+        Path versions=root.resolve("versions").toAbsolutePath().normalize(),dir=VersionInstaller.safe(versions,version);
+        if(!versions.equals(dir.getParent()))throw new IOException("无效的版本目录");
+        Map<String,Object> meta=Json.parseObject(Files.readString(dir.resolve(version+".json")));
+        Path gameJar=dir.resolve(version+".jar");if(!Files.isRegularFile(gameJar))throw new IOException("版本缺少客户端 JAR，请重新安装");
+        String mainClass=Json.str(meta,"mainClass");if(mainClass==null||mainClass.isBlank())throw new IOException("版本缺少启动主类");
+        Path libraries=root.resolve("libraries"),natives=dir.resolve(version+"-natives");Files.createDirectories(natives);
+        List<Path> classpath=new ArrayList<>();
+        for(Object raw:VersionInstaller.list(meta.get("libraries"))){
+            Map<String,Object> library=VersionInstaller.map(raw);if(!VersionInstaller.windowsLibrary(library))continue;
+            var downloads=VersionInstaller.map(library.get("downloads"));var artifact=VersionInstaller.map(downloads.get("artifact"));
+            String path=VersionInstaller.str(artifact,"path");
+            if(path.isBlank()&&!library.containsKey("natives"))path=VersionInstaller.mavenPath(VersionInstaller.str(library,"name"));
+            if(!path.isBlank()){
+                Path file=VersionInstaller.safe(libraries,path);if(!Files.isRegularFile(file))throw new IOException("缺少游戏依赖："+path);classpath.add(file);
+                if(path.contains("natives-windows"))extract(file,natives);
             }
+            String classifier=VersionInstaller.str(VersionInstaller.map(library.get("natives")),"windows").replace("${arch}","64");
+            var nativeArtifact=VersionInstaller.map(VersionInstaller.map(downloads.get("classifiers")).get(classifier));
+            if(!nativeArtifact.isEmpty())extract(VersionInstaller.safe(libraries,VersionInstaller.str(nativeArtifact,"path")),natives);
         }
-        if (!Files.isRegularFile(installed.resolve("glfw.dll"))) {
-            throw new IOException("缺少 Windows 原生库，请重新安装该版本");
+        classpath.add(gameJar);
+        int major=(int)Json.num(VersionInstaller.map(meta.get("javaVersion")),"majorVersion",8);
+        // LWJGL 2 loads OpenAL through ANSI Win32 paths; keep its DLL path ASCII when the installation path is Chinese.
+        if(major<=8&&!StandardCharsetsHolder.ascii(natives.toString()))natives=legacyNativeCache(natives);
+        String assetsId=Objects.toString(VersionInstaller.map(meta.get("assetIndex")).get("id"),"legacy");
+        Path assets=root.resolve("assets"),legacyAssets=assets.resolve("virtual").resolve(assetsId);
+        String uuid=account.premium&&!Objects.toString(account.uuid,"").isBlank()?account.uuid.replace("-",""):offlineUuid(account.name);
+        String token=account.premium?Objects.toString(account.accessToken,"0"):"0";
+        Map<String,String> values=new HashMap<>();
+        values.put("auth_player_name",account.name);values.put("auth_uuid",uuid);values.put("auth_access_token",token);
+        values.put("auth_session",account.premium?"token:"+token+":"+uuid:"0");values.put("user_type",account.premium?"msa":"legacy");
+        values.put("version_name",version);values.put("version_type",Objects.toString(meta.get("type"),"release"));
+        values.put("game_directory",root.toString());values.put("assets_root",assets.toString());values.put("assets_index_name",assetsId);
+        values.put("game_assets",Files.isDirectory(legacyAssets)?legacyAssets.toString():root.resolve("resources").toString());
+        values.put("user_properties","{}");values.put("auth_xuid","");values.put("clientid","");
+        values.put("natives_directory",natives.toString());values.put("library_directory",libraries.toString());
+        values.put("classpath_separator",File.pathSeparator);values.put("classpath",String.join(File.pathSeparator,classpath.stream().map(Path::toString).toList()));
+        values.put("launcher_name","MXCloud");values.put("launcher_version",ApplicationVersion.CURRENT);
+        values.put("resolution_width","854");values.put("resolution_height","480");
+        List<String> command=new ArrayList<>();command.add(GameJava.executable(root,major));
+        command.add("-Xms"+Math.min(1024,memoryMb)+"M");command.add("-Xmx"+Math.max(1024,memoryMb)+"M");
+        command.add("-Dfile.encoding=UTF-8");command.add("-Dlog4j2.formatMsgNoLookups=true");
+        command.add("-Dstdout.encoding=UTF-8");command.add("-Dstderr.encoding=UTF-8");
+        command.add("-Djava.library.path="+natives);command.add("-Dorg.lwjgl.system.SharedLibraryExtractPath="+natives);
+        command.add("-Dorg.lwjgl.librarypath="+natives);
+        Map<String,Object> arguments=VersionInstaller.map(meta.get("arguments"));
+        List<String> jvm=arguments(arguments.get("jvm"),values);command.addAll(jvm);
+        if(!jvm.contains("-cp")&&!jvm.contains("-classpath")&&!jvm.contains("--class-path")){command.add("-cp");command.add(values.get("classpath"));}
+        var logging=VersionInstaller.map(VersionInstaller.map(meta.get("logging")).get("client"));var loggingFile=VersionInstaller.map(logging.get("file"));
+        if(!loggingFile.isEmpty()){
+            Path file=VersionInstaller.safe(assets.resolve("log_configs"),VersionInstaller.str(loggingFile,"id"));
+            if(Files.isRegularFile(file))command.add(VersionInstaller.str(logging,"argument").replace("${path}",file.toUri().toASCIIString()));
         }
-        return installed;
+        String extra=Settings.load(LauncherPaths.home()).jvmArgs;if(extra!=null&&!extra.isBlank())command.addAll(split(extra));
+        command.add(mainClass);
+        if(arguments.containsKey("game"))command.addAll(arguments(arguments.get("game"),values));
+        else for(String argument:split(VersionInstaller.str(meta,"minecraftArguments")))command.add(expand(argument,values));
+        return command;
     }
-
-    /** 离线账号 UUID：与官方离线模式一致（MD5("OfflinePlayer:<名字>") 加版本位）。 */
-    static String offlineUuid(String name) {
-        try {
-            byte[] digest = MessageDigest.getInstance("MD5")
-                    .digest(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
-            digest[6] = (byte) ((digest[6] & 0x0f) | 0x30);
-            digest[8] = (byte) ((digest[8] & 0x3f) | 0x80);
-            StringBuilder text = new StringBuilder(32);
-            for (byte value : digest) text.append(String.format("%02x", value));
-            return text.toString();
-        } catch (Exception impossible) {
-            return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8))
-                    .toString().replace("-", "");
-        }
+    static List<String> arguments(Object raw,Map<String,String> values)throws IOException{
+        List<String> result=new ArrayList<>();
+        for(Object item:VersionInstaller.list(raw)){
+            if(item instanceof String text)result.add(expand(text,values));
+            else{Map<String,Object> object=VersionInstaller.map(item);if(!VersionInstaller.windowsLibrary(object))continue;
+                Object value=object.get("value");if(value instanceof String text)result.add(expand(text,values));else for(Object text:VersionInstaller.list(value))result.add(expand(text.toString(),values));}
+        }return result;
     }
+    static String expand(String text,Map<String,String> values)throws IOException{
+        Matcher matcher=Pattern.compile("\\$\\{([^}]+)}").matcher(text);StringBuffer result=new StringBuffer();
+        while(matcher.find()){String replacement=values.get(matcher.group(1));if(replacement==null)throw new IOException("不支持的启动参数："+matcher.group());matcher.appendReplacement(result,Matcher.quoteReplacement(replacement));}
+        matcher.appendTail(result);return result.toString();
+    }
+    static List<String> split(String text){
+        List<String> parts=new ArrayList<>();Matcher matcher=Pattern.compile("\"([^\"]*)\"|'([^']*)'|(\\S+)").matcher(text);
+        while(matcher.find())parts.add(matcher.group(1)!=null?matcher.group(1):matcher.group(2)!=null?matcher.group(2):matcher.group(3));return parts;
+    }
+    private static void extract(Path jar,Path natives)throws IOException{
+        try(ZipFile zip=new ZipFile(jar.toFile())){for(ZipEntry entry:Collections.list(zip.entries()))if(!entry.isDirectory()&&entry.getName().endsWith(".dll")){
+            Path file=natives.resolve(Path.of(entry.getName()).getFileName().toString());if(Files.isRegularFile(file))continue;
+            try(InputStream input=zip.getInputStream(entry)){Files.copy(input,file);}
+        }}
+    }
+    static String javaBinary(){
+        for(String home:List.of(LauncherPaths.home().resolve("runtime").toString(),System.getProperty("java.home",""),Objects.toString(System.getenv("JAVA_HOME"),""))){
+            Path java=Path.of(home,"bin/javaw.exe");if(Files.isRegularFile(java))return java.toAbsolutePath().toString();
+        }return "javaw";
+    }
+    static String offlineUuid(String name){return UUID.nameUUIDFromBytes(("OfflinePlayer:"+name).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString().replace("-","");}
+    private static Path legacyNativeCache(Path source)throws Exception{
+        java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");List<Path> files;
+        try(var entries=Files.list(source)){files=entries.filter(Files::isRegularFile).sorted().toList();}
+        for(Path file:files){digest.update(file.getFileName().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));digest.update(Files.readAllBytes(file));}
+        Path cache=Path.of(System.getProperty("java.io.tmpdir"),"MXCloud","Natives",HexFormat.of().formatHex(digest.digest()).substring(0,20));Files.createDirectories(cache);
+        for(Path file:files){Path target=cache.resolve(file.getFileName());if(!Files.isRegularFile(target)||Files.mismatch(file,target)!=-1)Files.copy(file,target,StandardCopyOption.REPLACE_EXISTING);}
+        return cache;
+    }
+    private static final class StandardCharsetsHolder {static boolean ascii(String text){return text.chars().allMatch(c->c<128);}}
 }

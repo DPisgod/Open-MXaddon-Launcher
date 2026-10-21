@@ -21,7 +21,7 @@ public final class MemoryAndClientsTest {
         check(MemoryAllocation.automatic(new MemoryAllocation.Ram(65536,50000))==8192,"automatic cap");
         check(MemoryAllocation.automatic(new MemoryAllocation.Ram(32768,6000))<MemoryAllocation.automatic(new MemoryAllocation.Ram(32768,17000)),"additional client does not reduce budget");
         settings.memoryMode="custom";settings.memoryMb=6144;settings.save(home);check(Settings.load(home).memoryMb==6144&&Settings.load(home).memoryMode.equals("custom"),"global memory not saved");
-        Path root=home.resolve(".min");String version="1.21.1-Test";Path folder=root.resolve("versions").resolve(version);Files.createDirectories(folder);Files.writeString(folder.resolve(version+".json"),"{}");
+        Path root=home.resolve(".minecraft");String version="1.21.1-Test";Path folder=root.resolve("versions").resolve(version);Files.createDirectories(folder);Files.writeString(folder.resolve(version+".json"),"{}");
         MemoryAllocation.save(root,version,new MemoryAllocation.Choice("follow",2048));check(MemoryAllocation.resolve(root,version,settings)==6144,"version does not inherit global");
         MemoryAllocation.save(root,version,new MemoryAllocation.Choice("custom",3072));check(MemoryAllocation.resolve(root,version,settings)==3072,"version custom ignored");
         boolean rejected=false;try{MemoryAllocation.save(root,"../escape",new MemoryAllocation.Choice("auto",4096));}catch(IllegalArgumentException expected){rejected=true;}check(rejected,"version path escapes root");
@@ -50,7 +50,7 @@ public final class MemoryAndClientsTest {
             SwingUtilities.invokeAndWait(()->{check(AccountBehaviorTest.findButton(frame[0],"启动游戏").isEnabled(),"launch did not recover after stop");check(!AccountBehaviorTest.findButton(frame[0],"结束全部游戏").isEnabled(),"stop remains enabled without clients");frame[0].showAppearance();JButton back=(JButton)AccountUiBehaviorTest.findNamed(frame[0],"returnHome");check(back.getHeight()==38&&back.getWidth()==102,"return home is stretched");});
             Path out=Path.of(args[0]);Files.createDirectories(out);
             for(String theme:List.of("light","dark"))SwingUtilities.invokeAndWait(()->{try{
-                UiTheme.set(theme);SettingsDialog global=new SettingsDialog(frame[0],fresh,fresh.resolve(".min"));global.addNotify();global.validate();shot(global,out.resolve("memory-global-"+theme+".png"));global.dispose();
+                UiTheme.set(theme);SettingsDialog global=new SettingsDialog(frame[0],fresh,fresh.resolve(".minecraft"));global.addNotify();global.validate();shot(global,out.resolve("memory-global-"+theme+".png"));global.dispose();
                 VersionSettingsDialog perVersion=new VersionSettingsDialog(frame[0],root,version);perVersion.addNotify();perVersion.validate();AccountBehaviorTest.findButton(perVersion,"游戏设置").doClick();perVersion.validate();shot(perVersion,out.resolve("memory-version-"+theme+".png"));perVersion.dispose();
             }catch(Exception e){throw new RuntimeException(e);}});
         }finally{first.destroyForcibly();second.destroyForcibly();unrelated.destroyForcibly();SwingUtilities.invokeAndWait(()->{if(frame[0]!=null)frame[0].dispose();});}

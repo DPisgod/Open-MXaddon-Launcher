@@ -49,9 +49,9 @@ public final class AppearanceControlsTest {
                     memorySlider.setValue(32768);check(memory.choice().mb()==32768,"slider maximum incorrect");memory.select(new MemoryAllocation.Choice("auto",4096));check(!memorySlider.isEnabled(),"automatic allocation has active custom slider");
                     memory.select(new MemoryAllocation.Choice("custom",4784));check(memorySlider.isEnabled()&&memory.choice().mb()==4784,"mode switch lost custom value");
                     ImageIO.write(render(memory),"png",out.resolve("memory-slider-"+theme+".png").toFile());
-                    SettingsDialog settings=new SettingsDialog(frame,home,home.resolve(".min"));settings.addNotify();settings.validate();((JRadioButton)AccountUiBehaviorTest.findNamed(settings,"memoryMode-custom")).doClick();((JSlider)AccountUiBehaviorTest.findNamed(settings,"customMemorySlider")).setValue(6144);
+                    SettingsDialog settings=new SettingsDialog(frame,home,home.resolve(".minecraft"));settings.addNotify();settings.validate();((JRadioButton)AccountUiBehaviorTest.findNamed(settings,"memoryMode-custom")).doClick();((JSlider)AccountUiBehaviorTest.findNamed(settings,"customMemorySlider")).setValue(6144);
                     ImageIO.write(render(settings.getContentPane()),"png",out.resolve("settings-slider-"+theme+".png").toFile());AccountBehaviorTest.findButton(settings,"保存").doClick();check(Settings.load(home).memoryMb==6144&&Settings.load(home).memoryMode.equals("custom"),"settings did not save slider allocation");
-                    SettingsDialog reopened=new SettingsDialog(frame,home,home.resolve(".min"));check(((JSlider)AccountUiBehaviorTest.findNamed(reopened,"customMemorySlider")).getValue()==6144,"reopened settings lost slider value");reopened.dispose();
+                    SettingsDialog reopened=new SettingsDialog(frame,home,home.resolve(".minecraft"));check(((JSlider)AccountUiBehaviorTest.findNamed(reopened,"customMemorySlider")).getValue()==6144,"reopened settings lost slider value");reopened.dispose();
 
                 }
             }catch(Exception e){throw new RuntimeException(e);}});

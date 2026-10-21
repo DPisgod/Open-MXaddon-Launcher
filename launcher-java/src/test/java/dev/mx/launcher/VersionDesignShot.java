@@ -11,7 +11,7 @@ public final class VersionDesignShot {
     public static void main(String[] args)throws Exception{
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         Path home=Files.createTempDirectory("mx-version-ui-"),out=Path.of(args[0]);Files.createDirectories(out);LauncherPaths.override(home);
-        Path version=home.resolve(".min/versions/"+VersionInstaller.ID);Files.createDirectories(version.resolve("instance/versions/"+VersionInstaller.ID));
+        Path version=home.resolve(".minecraft/versions/"+VersionInstaller.ID);Files.createDirectories(version.resolve("instance/versions/"+VersionInstaller.ID));
         Files.writeString(version.resolve(VersionInstaller.ID+".json"),"{\"mxcloudInstance\":true}");
         Files.write(version.resolve("instance/versions/"+VersionInstaller.ID+"/"+VersionInstaller.ID+".jar"),new byte[0]);
         ModManager mods=new ModManager(version.resolve("instance"));
@@ -20,8 +20,8 @@ public final class VersionDesignShot {
         SwingUtilities.invokeAndWait(()->{
             for(String theme:new String[]{"light","dark"})try{
                 UiTheme.set(theme);
-                VersionSettingsDialog dialog=new VersionSettingsDialog(null,home.resolve(".min"),VersionInstaller.ID);render(dialog,out.resolve("version-mods-"+theme+".png"));dialog.dispose();
-                InstallVersionDialog install=new InstallVersionDialog(null,home.resolve(".min"),id->{});render(install,out.resolve("version-install-"+theme+".png"));install.dispose();
+                VersionSettingsDialog dialog=new VersionSettingsDialog(null,home.resolve(".minecraft"),VersionInstaller.ID);render(dialog,out.resolve("version-mods-"+theme+".png"));dialog.dispose();
+                InstallVersionDialog install=new InstallVersionDialog(null,home.resolve(".minecraft"),id->{});render(install,out.resolve("version-install-"+theme+".png"));install.dispose();
             }catch(Exception e){throw new RuntimeException(e);}
         });
         System.out.println("VERSION_DIALOG_SHOTS_OK");System.exit(0);

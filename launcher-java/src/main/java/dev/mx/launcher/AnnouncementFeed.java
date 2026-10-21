@@ -55,7 +55,7 @@ final class AnnouncementFeed {
         int x = -1, y = -1;
 
         State(Path home) {
-            file = home.resolve(".min").resolve("announcement.properties");
+            file = home.resolve(".minecraft").resolve("announcement.properties");
             Properties values = new Properties();
             try (InputStream input = Files.newInputStream(file)) { values.load(input); }
             catch (IOException | IllegalArgumentException ignored) { return; }

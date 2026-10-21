@@ -65,7 +65,7 @@ final class AnnouncementOverlay extends JLayeredPane implements AutoCloseable {
     private void dismiss() {
         try { state.dismiss(current); removeAll(); card = null; revalidate(); repaint(); }
         catch (IOException failure) {
-            WindowChrome.prompt(SwingUtilities.getWindowAncestor(this), "无法保存公告关闭状态", "请检查启动器 .min 目录的写入权限后重试。", false);
+            WindowChrome.prompt(SwingUtilities.getWindowAncestor(this), "无法保存公告关闭状态", "请检查启动器 .minecraft 目录的写入权限后重试。", false);
         }
     }
 

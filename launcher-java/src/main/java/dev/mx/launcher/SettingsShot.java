@@ -26,7 +26,7 @@ public final class SettingsShot {
         final AtomicReference<SettingsDialog> ref = new AtomicReference<>();
 
         SwingUtilities.invokeAndWait(() -> {
-            SettingsDialog d = new SettingsDialog(null, home, home.resolve(".min"));
+            SettingsDialog d = new SettingsDialog(null, home, home.resolve(".minecraft"));
             ref.set(d);
             d.setLocationRelativeTo(null);
             // 模态对话框 setVisible 会阻塞 EDT，这里只做 pack/布局后手动显示

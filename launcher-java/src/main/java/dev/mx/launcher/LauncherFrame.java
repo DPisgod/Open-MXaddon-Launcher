@@ -13,7 +13,7 @@ import java.util.Map;
 
 /** F: panoramic wallpaper, quiet navigation and a single floating launch dock. */
 public final class LauncherFrame extends JFrame {
-    private final Path home=LauncherPaths.home(),gameRoot=home.resolve(".min");
+    private final Path home=LauncherPaths.home(),gameRoot=home.resolve(".minecraft");
     private final AccountStore accounts=new AccountStore(home);
     private JPanel profileControl;
     private Appearance appearance=Appearance.load(home);
@@ -28,6 +28,7 @@ public final class LauncherFrame extends JFrame {
     private AppearancePanel appearancePanel;
     private final UiTheme.Button homeTab=new UiTheme.Button("主页","",UiTheme.Tone.NAV);
     private final UiTheme.Button appearanceTab=new UiTheme.Button("壁纸","",UiTheme.Tone.NAV);
+    private final UiTheme.Button downloadsTab=new UiTheme.Button("下载","",UiTheme.Tone.NAV);
     private final UiTheme.Button launchBtn=new UiTheme.Button("启动游戏","play",UiTheme.Tone.PRIMARY);
     private final UiTheme.PowerButton stopBtn=new UiTheme.PowerButton();
     private final GameProcesses games=new GameProcesses();
@@ -67,6 +68,7 @@ public final class LauncherFrame extends JFrame {
         JPanel navigation=UiTheme.transparent(new FlowLayout(FlowLayout.CENTER,0,0));UiTheme.Surface navPill=new UiTheme.Surface(new FlowLayout(FlowLayout.CENTER,2,3),24);navPill.background=true;homeTab.setPreferredSize(new Dimension(82,36));appearanceTab.setPreferredSize(new Dimension(82,36));navPill.add(homeTab);navPill.add(appearanceTab);navigation.add(navPill);header.add(navigation,BorderLayout.CENTER);
         JPanel right=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,10,0));UiTheme.Surface themes=new UiTheme.Surface(new FlowLayout(FlowLayout.CENTER,1,3),22);themes.background=true;themes.add(lightBtn);themes.add(systemBtn);themes.add(darkBtn);right.add(themes);right.add(settingsBtn);right.add(WindowChrome.controls(this,true));settingsBtn.setToolTipText("游戏设置");header.add(right,BorderLayout.EAST);root.add(header,BorderLayout.NORTH);WindowChrome.drag(this,header);
         homeTab.addActionListener(e->showHome());appearanceTab.addActionListener(e->showAppearance());settingsBtn.addActionListener(e->openSettings());
+        ((Container)homeTab.getParent()).add(downloadsTab);downloadsTab.setPreferredSize(new Dimension(82,36));downloadsTab.addActionListener(e->openDownloads());
         lightBtn.setToolTipText("浅色模式");systemBtn.setToolTipText("跟随系统");darkBtn.setToolTipText("深色模式");lightBtn.addActionListener(e->setTheme("light"));systemBtn.addActionListener(e->setTheme("system"));darkBtn.addActionListener(e->setTheme("dark"));
 
         JPanel bottom=UiTheme.transparent(new GridBagLayout());bottom.setBorder(new EmptyBorder(0,24,24,24));
@@ -110,17 +112,18 @@ public final class LauncherFrame extends JFrame {
     private void onVersionSelected(){if(updatingVersions)return;Object value=versionBox.getSelectedItem();if(value==null)return;String choice=value.toString();if(ADD_VERSION.equals(choice)||VERSION_SETTINGS.equals(choice)||DELETE_VERSION.equals(choice)){updatingVersions=true;versionBox.setSelectedItem(selectedVersion.isEmpty()?NO_VERSION:selectedVersion);updatingVersions=false;SwingUtilities.invokeLater(()->{if(ADD_VERSION.equals(choice))addVersion();else if(DELETE_VERSION.equals(choice))deleteVersion();else versionSettings();});return;}if(!NO_VERSION.equals(choice))selectedVersion=choice;updateLoader();}
     private void deleteVersion(){
         if(busy||selectedVersion.isEmpty())return;if(games.running()){showError("请先退出游戏","所有客户端退出后可删除版本。");return;}String version=selectedVersion;
-        if(WindowChrome.prompt(this,"删除游戏版本","删除版本“"+version+"”？\n\n版本文件夹会移至 .min/.mx-version-trash。独立版本中的 Mod、配置和存档会一起移入，可手动找回。",true)!=JOptionPane.OK_OPTION)return;
+        if(WindowChrome.prompt(this,"删除游戏版本","删除版本“"+version+"”？\n\n版本文件夹会移至 .minecraft/.mx-version-trash。独立版本中的 Mod、配置和存档会一起移入，可手动找回。",true)!=JOptionPane.OK_OPTION)return;
         setBusy(true,"正在删除版本…");new SwingWorker<Path,Void>(){
             @Override protected Path doInBackground()throws Exception{return VersionManager.remove(gameRoot,version);}
             @Override protected void done(){try{get();selectedVersion="";refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=selectedVersion;settings.save(home);setBusy(false,"版本已移入回收目录");}catch(Exception e){setBusy(false,"版本未删除");showError("无法删除版本",root(e));}}
         }.execute();
     }
     void addVersion(){if(busy)return;InstallVersionDialog dialog=new InstallVersionDialog(this,gameRoot,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);statusLabel.setText("● 安装完成");});dialog.setVisible(true);}
+    private void openDownloads(){if(busy||games.running()){showError("请先退出游戏","退出游戏后可下载并安装资源。");return;}new ContentBrowserDialog(this,gameRoot,selectedVersion,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);}).setVisible(true);}
     private void versionSettings(){if(busy)return;if(games.running()){showError("请先退出游戏","所有客户端退出后可修改此版本的 Mod。");return;}if(selectedVersion.isEmpty()){addVersion();return;}try{new VersionSettingsDialog(this,gameRoot,selectedVersion).setVisible(true);}catch(Exception e){showError("无法打开版本设置",root(e));}}
     private void updateLoader(){
-        Object value=versionBox.getSelectedItem();if(value==null)return;if(selectedVersion.isEmpty()){loaderLabel.setText("展开列表添加兼容版本");return;}loaderLabel.setText("Fabric · 本地游戏版本");
-        String name=value.toString();try{Map<String,Object> meta=Json.parseObject(Files.readString(gameRoot.resolve("versions").resolve(name).resolve(name+".json")));Object libraries=meta.get("libraries");if(libraries instanceof List<?> list)for(Object entry:list)if(entry instanceof Map<?,?> lib){String coordinate=String.valueOf(lib.get("name"));if(coordinate.startsWith("net.fabricmc:fabric-loader:"))loaderLabel.setText("Fabric "+coordinate.substring(coordinate.lastIndexOf(':')+1));}}catch(Exception ignored){}
+        Object value=versionBox.getSelectedItem();if(value==null)return;if(selectedVersion.isEmpty()){loaderLabel.setText("展开列表添加游戏版本");return;}loaderLabel.setText("本地游戏版本");
+        String name=value.toString();try{Map<String,Object> meta=Json.parseObject(Files.readString(gameRoot.resolve("versions").resolve(name).resolve(name+".json")));String chosen=ContentCatalog.installedLoader(meta);loaderLabel.setText(chosen.isBlank()?"Minecraft 原版":chosen);Object libraries=meta.get("libraries");if(libraries instanceof List<?> list)for(Object entry:list)if(entry instanceof Map<?,?> lib){String coordinate=String.valueOf(lib.get("name"));if(coordinate.startsWith("net.fabricmc:fabric-loader:"))loaderLabel.setText("Fabric "+coordinate.substring(coordinate.lastIndexOf(':')+1));}}catch(Exception ignored){}
         versionBox.setToolTipText(name);
     }
     private void applySession(){if(accountCleared){nameLabel.setText("添加游戏账号");nameLabel.setToolTipText("点击添加账号");typeLabel.setText("尚未选择账号");return;}String display=session.name;FontMetrics fm=nameLabel.getFontMetrics(nameLabel.getFont());while(display.length()>1&&fm.stringWidth(display)>96)display=display.substring(0,display.offsetByCodePoints(display.length(),-1));nameLabel.setText(display.equals(session.name)?display:display+"…");nameLabel.setToolTipText(session.name+" · 点击切换账号");typeLabel.setText(session.premium?"Minecraft 正版账号":"Minecraft 离线账号");}

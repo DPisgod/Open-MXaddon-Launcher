@@ -4,7 +4,7 @@
 # 输出：dist-shell\MXCloud启动器.exe  （单文件，内嵌全部运行时）
 #
 # 原理：
-#   1) 把 dist\ 内容打成 payload.zip（不含 .min）
+#   1) 把 dist\ 内容打成 payload.zip（不含 .minecraft）
 #   2) 生成 payload.rc（把 zip 作为 RCDATA 资源编译进 exe）
 #   3) 编译 MXCloudLauncher.cpp + payload.rc -> exe
 #
@@ -59,8 +59,8 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
 # 复制 dist 内容，排除运行期产物
-$skipNames = @("session.properties", "accounts.dat", "launcher.properties", "appearance.properties", "activation.properties", "device-session.dat", "payload.zip")
-$skipDirs  = @("skins", "wallpapers", "build", ".min", "_stage")
+$skipNames = @("session.properties", "accounts.dat", "launcher.properties", "appearance.properties", "announcement.properties", "curseforge-key.dat", "activation.properties", "device-session.dat", "payload.zip")
+$skipDirs  = @("skins", "wallpapers", "build", ".minecraft", ".min", "_stage")
 
 function Copy-Tree($from, $to) {
     New-Item -ItemType Directory -Force -Path $to | Out-Null
@@ -272,7 +272,7 @@ Write-Host "exe 已生成: $exeMb MB"
 # ---------- 6. 组装交付目录 + 清理 ----------
 Write-Host "`n=== [6/6] 组装交付物 ===" -ForegroundColor Cyan
 
-# 6a. 单文件版目录（exe + 说明 + 空 .min）
+# 6a. 单文件版目录（exe + 说明 + 空 .minecraft）
 $SingleDir = Join-Path (Split-Path $Root -Parent) "..\MXCloud单文件版"
 $SingleDir = [System.IO.Path]::GetFullPath($SingleDir)
 $deliveryRoot = [System.IO.Path]::GetFullPath((Join-Path $Parent '..'))
@@ -280,7 +280,7 @@ if (-not $SingleDir.StartsWith($deliveryRoot + '\', [System.StringComparison]::O
 # Preserve any game files a user already placed beside a previous build.
 New-Item -ItemType Directory -Force -Path $SingleDir | Out-Null
 Copy-Item $exeOut (Join-Path $SingleDir "MXCloud启动器.exe") -Force
-New-Item -ItemType Directory -Force -Path (Join-Path $SingleDir ".min\versions") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $SingleDir ".minecraft\versions") | Out-Null
 if (Test-Path (Join-Path $DistDir "使用说明.txt")) {
     Copy-Item (Join-Path $DistDir "使用说明.txt") (Join-Path $SingleDir "使用说明.txt") -Force
 }
@@ -296,7 +296,7 @@ try {
         $file = Join-Path $SingleDir $name
         if (Test-Path -LiteralPath $file) { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$file,$name) | Out-Null }
     }
-    $archive.CreateEntry('.min/versions/') | Out-Null
+    $archive.CreateEntry('.minecraft/versions/') | Out-Null
 } finally { $archive.Dispose() }
 $zipMb = [math]::Round((Get-Item $SingleZip).Length / 1MB, 1)
 Write-Host "分发包: $SingleZip ($zipMb MB)"
@@ -317,5 +317,5 @@ Write-Host "  单文件版（可直接测试）: $SingleDir"
 Write-Host "  分发包                : $SingleZip  ($zipMb MB)"
 Write-Host "  内容版本              : $buildId"
 Write-Host ""
-Write-Host "用户目录里只有：MXCloud启动器.exe + .min\ + 使用说明.txt"
+Write-Host "用户目录里只有：MXCloud启动器.exe + .minecraft\ + 使用说明.txt"
 Write-Host "运行时会自动释放到 %TEMP%\MXCloud\$buildId\（用户看不到）。"
