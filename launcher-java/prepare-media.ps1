@@ -36,6 +36,7 @@ New-Item -ItemType Directory -Force -Path $wallpapers | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'assets/builtin-wallpapers') -File |
     Copy-Item -Destination $wallpapers -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'assets/FFmpeg-NOTICE.txt') -Destination $media -Force
-& (Join-Path $media 'ffmpeg.exe') -version | Select-Object -First 1 | Write-Host
+$ffmpegVersion = & (Join-Path $media 'ffmpeg.exe') -version
 if ($LASTEXITCODE -ne 0) { throw 'Bundled FFmpeg could not start' }
+$ffmpegVersion | Select-Object -First 1 | Write-Host
 Write-Host 'Bundled media decoder and wallpapers are ready.'

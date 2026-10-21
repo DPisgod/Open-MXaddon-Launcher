@@ -26,6 +26,9 @@ public final class LauncherFrame extends JFrame {
     private final CardLayout pages=new CardLayout();
     private final JPanel pageHost=UiTheme.transparent(pages);
     private AppearancePanel appearancePanel;
+    private DownloadCenterPanel downloadCenter;
+    private boolean downloadsVisible;
+    private final boolean network;
     private final UiTheme.Button homeTab=new UiTheme.Button("主页","",UiTheme.Tone.NAV);
     private final UiTheme.Button appearanceTab=new UiTheme.Button("壁纸","",UiTheme.Tone.NAV);
     private final UiTheme.Button downloadsTab=new UiTheme.Button("下载","",UiTheme.Tone.NAV);
@@ -52,7 +55,7 @@ public final class LauncherFrame extends JFrame {
     public LauncherFrame(){this(true);}
     /** UI harness never touches the file system outside its own home; launch stays available without authorization. */
     LauncherFrame(boolean initialize){
-        super("");WindowChrome.undecorate(this);UiTheme.set(appearance.theme);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        super("");network=initialize;WindowChrome.undecorate(this);UiTheme.set(appearance.theme);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(1000,740));setSize(1140,810);setLocationRelativeTo(null);
         buildUi();Session saved=SessionStore.load(home);List<Session> available=accounts.available(saved);session=saved!=null?saved:available.isEmpty()?null:available.get(0);accountCleared=session==null;if(session!=null)SessionStore.save(home,session);applySession();avatar.setImage(session==null?null:SkinFetcher.cached(session,home));wallpaper.onChange(backdrop::repaint);wallpaper.onError(error->statusLabel.setText("壁纸读取失败，请在外观中更换"));wallpaper.select(library.find(appearance.wallpaper),appearance);
         addWindowListener(new WindowAdapter(){@Override public void windowOpened(WindowEvent e){refreshTheme();}@Override public void windowIconified(WindowEvent e){syncPlayback();}@Override public void windowDeiconified(WindowEvent e){syncPlayback();}@Override public void windowClosed(WindowEvent e){disposeResources();}});
@@ -119,7 +122,11 @@ public final class LauncherFrame extends JFrame {
         }.execute();
     }
     void addVersion(){if(busy)return;InstallVersionDialog dialog=new InstallVersionDialog(this,gameRoot,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);statusLabel.setText("● 安装完成");});dialog.setVisible(true);}
-    private void openDownloads(){if(busy||games.running()){showError("请先退出游戏","退出游戏后可下载并安装资源。");return;}new ContentBrowserDialog(this,gameRoot,selectedVersion,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);}).setVisible(true);}
+    void openDownloads(){
+        if(busy||games.running()){showError("请先退出游戏","退出游戏后可下载并安装资源。");return;}
+        if(downloadCenter==null){downloadCenter=new DownloadCenterPanel(this,gameRoot,selectedVersion,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);},network);pageHost.add(downloadCenter,"downloads");}
+        downloadCenter.selectInstance(selectedVersion);appearanceVisible=false;downloadsVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"downloads");syncPlayback();refreshTheme();
+    }
     private void versionSettings(){if(busy)return;if(games.running()){showError("请先退出游戏","所有客户端退出后可修改此版本的 Mod。");return;}if(selectedVersion.isEmpty()){addVersion();return;}try{new VersionSettingsDialog(this,gameRoot,selectedVersion).setVisible(true);}catch(Exception e){showError("无法打开版本设置",root(e));}}
     private void updateLoader(){
         Object value=versionBox.getSelectedItem();if(value==null)return;if(selectedVersion.isEmpty()){loaderLabel.setText("展开列表添加游戏版本");return;}loaderLabel.setText("本地游戏版本");
@@ -193,13 +200,14 @@ public final class LauncherFrame extends JFrame {
     }
     private void refreshTheme(){
         MenuSelectionManager.defaultManager().clearSelectedPath();
-        homeTab.selected=!appearanceVisible;appearanceTab.selected=appearanceVisible;lightBtn.selected="light".equals(appearance.theme);systemBtn.selected="system".equals(appearance.theme);darkBtn.selected="dark".equals(appearance.theme);UiTheme.refresh(getContentPane());getContentPane().revalidate();getContentPane().repaint();
+        homeTab.selected=!appearanceVisible&&!downloadsVisible;appearanceTab.selected=appearanceVisible;downloadsTab.selected=downloadsVisible;lightBtn.selected="light".equals(appearance.theme);systemBtn.selected="system".equals(appearance.theme);darkBtn.selected="dark".equals(appearance.theme);UiTheme.refresh(getContentPane());getContentPane().revalidate();getContentPane().repaint();
         try{if(isDisplayable()){com.sun.jna.platform.win32.WinDef.HWND hwnd=new com.sun.jna.platform.win32.WinDef.HWND(com.sun.jna.Native.getComponentPointer(this));int[] dark={UiTheme.p().dark()?1:0};Dwm.INSTANCE.DwmSetWindowAttribute(hwnd,20,dark,4);}}catch(Throwable ignored){}
     }
     private void updateTransparency(){for(UiTheme.Surface surface:wallpaperSurfaces){surface.transparency=appearance.uiTransparency;surface.repaint();}}
     private interface Dwm extends com.sun.jna.Library{Dwm INSTANCE=com.sun.jna.Native.load("dwmapi",Dwm.class);int DwmSetWindowAttribute(com.sun.jna.platform.win32.WinDef.HWND hwnd,int attribute,int[] value,int size);}
-    private void showHome(){appearanceVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"home");syncPlayback();refreshTheme();}
+    private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"home");syncPlayback();refreshTheme();}
     void showAppearance(){
+        if(downloadCenter!=null&&downloadCenter.busy())return;downloadsVisible=false;
         if(appearancePanel!=null){appearancePanel.close();pageHost.remove(appearancePanel);}
         appearancePanel=new AppearancePanel(library,appearance,this::applyAppearance,this::showHome);pageHost.add(appearancePanel,"appearance");appearanceVisible=true;pages.show(pageHost,"appearance");appearancePanel.setActive((getExtendedState()&ICONIFIED)==0);syncPlayback();refreshTheme();
     }
@@ -209,15 +217,16 @@ public final class LauncherFrame extends JFrame {
     }
     private void syncPlayback(){
         boolean minimized=(getExtendedState()&ICONIFIED)!=0;boolean game=games.running();
-        wallpaper.setPaused(minimized||appearanceVisible||(appearance.pauseWithGame&&(game||busy)));
+        wallpaper.setPaused(minimized||appearanceVisible||downloadsVisible||(appearance.pauseWithGame&&(game||busy)));
         if(appearancePanel!=null)appearancePanel.setActive(appearanceVisible&&!minimized&&!(appearance.pauseWithGame&&game));
     }
-    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();if(systemThemeTimer!=null)systemThemeTimer.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();}
+    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();if(systemThemeTimer!=null)systemThemeTimer.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();}
     @Override public void dispose(){disposeResources();super.dispose();}
     private void showError(String title,String body){WindowChrome.prompt(this,title,body,false);}
     private static String root(Throwable e){while(e.getCause()!=null&&e.getCause()!=e)e=e.getCause();return e.getMessage()==null?"操作未完成，请重试。":e.getMessage();}
     Path homeDir(){return home;}String debugStatusText(){return statusLabel.getText();}String debugVersionText(){Object selected=versionBox.getSelectedItem();return selected==null?"":selected.toString();}
     AppearancePanel appearancePanel(){return appearancePanel;}
+    DownloadCenterPanel downloadCenter(){return downloadCenter;}
     void previewTheme(String theme){setTheme(theme);}
     WallpaperPlayer wallpaperPlayer(){return wallpaper;}
     private static final class AvatarPanel extends JPanel {

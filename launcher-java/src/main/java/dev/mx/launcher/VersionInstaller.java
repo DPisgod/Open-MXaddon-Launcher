@@ -126,7 +126,7 @@ final class VersionInstaller {
                 progress.accept(new Progress("下载匹配的 Fabric API…",0,0));
                 new ContentCatalog("").installFabricApi(minecraft,instance,this);
             }
-            if(content!=null)content.install(instance,this);
+            if(content!=null){content.install(instance,this);meta=Json.parseObject(Files.readString(versionDir.resolve(id+".json")));}
             Map<String,Object> outer=new LinkedHashMap<>(meta);outer.put("mxcloudInstance",true);outer.put("mxcloudInstaller",1);
             Files.writeString(stage.resolve(id+".json"),Json.write(outer));
             Files.writeString(stage.resolve("installation.json"),Json.write(Map.of("minecraft",minecraft,"loader",options.loader().name(),"loaderVersion",options.loaderVersion(),"files",downloads.size(),"assetObjects",assets.size(),"createdAt",System.currentTimeMillis())));

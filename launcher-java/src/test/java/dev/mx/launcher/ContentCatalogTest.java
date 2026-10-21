@@ -22,7 +22,7 @@ public final class ContentCatalogTest {
             throw new IOException("Unexpected URL "+url);
         });
         for(ContentCatalog.Kind kind:ContentCatalog.Kind.values())for(ContentCatalog.Source source:ContentCatalog.Source.values()){
-            var page=catalog.search(source,kind,"test + unicode 中文","1.21.1","fabric",20);check(page.projects().size()==1&&page.projects().get(0).kind()==kind,"Search adapter "+source+" "+kind);
+            var page=catalog.search(source,kind,"test + unicode 中文","1.21.1","fabric",20);check(page.projects().size()==(source==ContentCatalog.Source.ALL?2:1)&&page.projects().get(0).kind()==kind,"Search adapter "+source+" "+kind);
         }
         var project=new ContentCatalog.Project(ContentCatalog.Source.MODRINTH,"example","Example","Author","","",ContentCatalog.Kind.MOD);
         check(catalog.versions(project,"1.21.1","fabric",0).get(0).release().equals("beta"),"Project beta files");
@@ -31,6 +31,14 @@ public final class ContentCatalogTest {
         check(catalog.resolve(parsedMr,"1.21.1","fabric",true).size()==2,"Automatic required dependencies");
         try{catalog.resolve(parsedMr,"1.20.1","fabric",true);throw new AssertionError("Incompatible dependency");}catch(IOException expected){}
         try{new ContentCatalog("",(url,headers,limit)->{throw new AssertionError("Connected without key");}).search(ContentCatalog.Source.CURSEFORGE,ContentCatalog.Kind.MOD,"","","",0);throw new AssertionError("Missing API key");}catch(IOException expected){}
+        var fallback=new ContentCatalog("",(url,headers,limit)->{check(url.contains("api.modrinth.com"),"Missing key still queried CurseForge");return bytes(Map.of("hits",List.of(),"total_hits",0));}).search(ContentCatalog.Source.ALL,ContentCatalog.Kind.MOD,"","","",0);
+        check(fallback.notice().contains("CurseForge")&&!fallback.more(),"Merged source availability notice or pagination");
+        var data=new ContentCatalog("",(url,headers,limit)->{
+            check(url.contains("loaders=%5B%22datapack%22%5D"),"Datapack loader filter missing");
+            var pack=new LinkedHashMap<String,Object>(modrinth);pack.put("loaders",List.of("datapack"));pack.put("files",List.of(Map.of("filename","data.zip","url","https://cdn.modrinth.com/data.zip","size",10,"hashes",Map.of("sha1","b".repeat(40)))));
+            return bytes(List.of(modrinth,pack));
+        }).versions(new ContentCatalog.Project(ContentCatalog.Source.MODRINTH,"data","Data","Author","","",ContentCatalog.Kind.DATA),"1.21.1","",0);
+        check(data.size()==1&&data.get(0).filename().equals("data.zip"),"Dual mod/datapack project chose a mod JAR");
         var blocked=new LinkedHashMap<String,Object>(curse);blocked.remove("downloadUrl");check(ContentCatalog.curse(blocked).url()==null,"Respect restricted third-party distribution");
         check(requested.stream().anyMatch(url->url.contains("classId=6552"))&&requested.stream().anyMatch(url->url.contains("index=50")),"Shader category and pagination");
         System.out.println("CONTENT_MODRINTH_CURSEFORGE_FOUR_TYPES_BETA_ALPHA_DEPENDENCIES_AUTH_OK");

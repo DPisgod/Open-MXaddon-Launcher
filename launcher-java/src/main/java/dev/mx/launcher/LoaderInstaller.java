@@ -24,6 +24,9 @@ final class LoaderInstaller {
                 throw new IOException("官方加载器安装失败（"+process.exitValue()+"），日志："+saved);
             }
         }finally{if(process.isAlive()){for(ProcessHandle child:process.descendants().toList())child.destroyForcibly();process.destroyForcibly();process.waitFor(10,TimeUnit.SECONDS);}}
+        mergeProfile(options,instance,versionDir,base,installer);Files.deleteIfExists(executable);
+    }
+    static void mergeProfile(DownloadCatalog.Options options,Path instance,Path versionDir,Map<String,Object> base,VersionInstaller installer)throws Exception{
         Map<String,Object> profile=null;Path profileFolder=null;
         try(var folders=Files.list(instance.resolve("versions"))){
             for(Path folder:folders.toList()){
@@ -44,7 +47,7 @@ final class LoaderInstaller {
         String jarId=VersionInstaller.str(profile,"id");Path patchedJar=profileFolder.resolve(jarId+".jar");
         if(Files.isRegularFile(patchedJar))Files.copy(patchedJar,versionDir.resolve(options.id()+".jar"),StandardCopyOption.REPLACE_EXISTING);
         installer.ensureLibraries(instance,base);
-        Files.writeString(versionDir.resolve(options.id()+".json"),Json.write(base));Files.deleteIfExists(executable);
+        Files.writeString(versionDir.resolve(options.id()+".json"),Json.write(base));
     }
     private static String key(Object value){String coordinate=VersionInstaller.str(VersionInstaller.map(value),"name");String[] parts=coordinate.split(":");return parts.length>=3?parts[0]+":"+parts[1]+(parts.length>3?":"+parts[3]:""):coordinate;}
 }

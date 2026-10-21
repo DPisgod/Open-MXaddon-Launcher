@@ -8,15 +8,19 @@ import java.util.*;
 
 /** Modrinth and CurseForge adapters. A missing official download URL is never reconstructed. */
 final class ContentCatalog {
-    enum Source { MODRINTH("Modrinth"), CURSEFORGE("CurseForge");final String title;Source(String title){this.title=title;}public String toString(){return title;} }
-    enum Kind { MOD("模组","mod",6,"mods"), SHADER("光影包","shader",6552,"shaderpacks"), RESOURCE("材质 / 资源包","resourcepack",12,"resourcepacks"), PACK("整合包","modpack",4471,"modpacks");
+    enum Source { MODRINTH("Modrinth"), CURSEFORGE("CurseForge"), ALL("全部来源");final String title;Source(String title){this.title=title;}public String toString(){return title;} }
+    enum Kind { MOD("Mod","mod",6,"mods"), SHADER("光影包","shader",6552,"shaderpacks"), RESOURCE("资源包","resourcepack",12,"resourcepacks"), PACK("整合包","modpack",4471,"modpacks"), DATA("数据包","datapack",6945,"datapacks");
         final String title,mr,folder;final int cf;Kind(String title,String mr,int cf,String folder){this.title=title;this.mr=mr;this.cf=cf;this.folder=folder;}public String toString(){return title;} }
-    record Project(Source source,String id,String title,String author,String description,String website,Kind kind){public String toString(){return title+" · "+author;}}
+    record Project(Source source,String id,String title,String author,String description,String website,Kind kind,String icon,long downloads,String updated,List<String> tags,List<String> games){
+        Project(Source source,String id,String title,String author,String description,String website,Kind kind){this(source,id,title,author,description,website,kind,"",0,"",List.of(),List.of());}
+        public String toString(){return title+" · "+author;}
+    }
+    record Category(Source source,String id,String title){public String toString(){return title;}}
     record FileVersion(Source source,String id,String title,String release,String filename,String url,String algorithm,String hash,long size,List<String> games,List<String> loaders,List<Dependency> dependencies){
         public String toString(){return title+"  ·  "+release+"  ·  "+filename;}
     }
     record Dependency(String project,String version){}
-    record Page(List<Project> projects,int total){}
+    record Page(List<Project> projects,int total,boolean more,String notice){Page(List<Project> projects,int total){this(projects,total,projects.size()<total,"");}}
     private final String key;
     private final DownloadCatalog.Transport transport;
     ContentCatalog(String key){this(key,DownloadCatalog::request);}
@@ -27,29 +31,56 @@ final class ContentCatalog {
         return Json.parse(new String(transport.read(url,curse?Map.of("x-api-key",key):Map.of(),16*1024*1024),StandardCharsets.UTF_8));
     }
     Page search(Source source,Kind kind,String query,String game,String loader,int offset)throws IOException{
+        return search(source,kind,query,game,loader,offset,null,"relevance");
+    }
+    Page search(Source source,Kind kind,String query,String game,String loader,int offset,Category category,String sort)throws IOException{
+        if(source==Source.ALL){
+            List<Page> pages=new ArrayList<>();List<String> notices=new ArrayList<>();
+            for(Source provider:List.of(Source.MODRINTH,Source.CURSEFORGE)){
+                if(category!=null&&category.source()!=provider)continue;
+                if(provider==Source.CURSEFORGE&&key.isEmpty()){notices.add("CurseForge 未配置密钥，当前展示 Modrinth");continue;}
+                try{pages.add(search(provider,kind,query,game,loader,offset,category,sort));}catch(IOException e){notices.add(provider+"："+e.getMessage());}
+            }
+            if(pages.isEmpty())throw new IOException(String.join("；",notices));
+            List<Project> merged=new ArrayList<>();for(int i=0;i<20;i++)for(Page page:pages)if(i<page.projects().size())merged.add(page.projects().get(i));
+            return new Page(merged,pages.stream().mapToInt(Page::total).sum(),pages.stream().anyMatch(Page::more),String.join("；",notices));
+        }
         if(source==Source.MODRINTH){
             List<List<String>> facets=new ArrayList<>();facets.add(List.of("project_type:"+kind.mr));
             if(!game.isBlank())facets.add(List.of("versions:"+game));if(kind==Kind.MOD&&!loader.isBlank())facets.add(List.of("categories:"+loader));
-            var result=VersionInstaller.map(request("https://api.modrinth.com/v2/search?limit=20&offset="+offset+"&query="+DownloadCatalog.encode(query)+"&facets="+DownloadCatalog.encode(Json.write(facets))));
+            if(category!=null)facets.add(List.of("categories:"+category.id()));
+            var result=VersionInstaller.map(request("https://api.modrinth.com/v2/search?limit=20&offset="+offset+"&index="+DownloadCatalog.encode(sort)+"&query="+DownloadCatalog.encode(query)+"&facets="+DownloadCatalog.encode(Json.write(facets))));
             List<Project> projects=new ArrayList<>();
-            for(Object raw:VersionInstaller.list(result.get("hits"))){var hit=VersionInstaller.map(raw);projects.add(new Project(source,Json.str(hit,"project_id"),Json.str(hit,"title"),Json.str(hit,"author"),Json.str(hit,"description"),"https://modrinth.com/"+kind.mr+"/"+Json.str(hit,"slug"),kind));}
-            return new Page(projects,(int)Json.num(result,"total_hits",0));
+            for(Object raw:VersionInstaller.list(result.get("hits"))){var hit=VersionInstaller.map(raw);projects.add(new Project(source,Json.str(hit,"project_id"),Json.str(hit,"title"),Json.str(hit,"author"),Json.str(hit,"description"),"https://modrinth.com/"+kind.mr+"/"+Json.str(hit,"slug"),kind,Objects.toString(hit.get("icon_url"),""),Json.num(hit,"downloads",0),Objects.toString(hit.get("date_modified"),""),strings(hit.get("categories")),strings(hit.get("versions"))));}
+            int total=(int)Json.num(result,"total_hits",0);return new Page(projects,total,offset+projects.size()<total,"");
         }
-        var result=VersionInstaller.map(request("https://api.curseforge.com/v1/mods/search?gameId=432&classId="+kind.cf+"&pageSize=20&index="+offset+"&searchFilter="+DownloadCatalog.encode(query)+filters(game,kind==Kind.MOD?loader:"")));
+        int order=switch(sort){case "downloads"->6;case "updated"->3;case "newest"->11;default->1;};
+        var result=VersionInstaller.map(request("https://api.curseforge.com/v1/mods/search?gameId=432&classId="+kind.cf+"&pageSize=20&index="+offset+"&sortField="+order+"&sortOrder=desc"+(category==null?"":"&categoryId="+DownloadCatalog.encode(category.id()))+"&searchFilter="+DownloadCatalog.encode(query)+filters(game,kind==Kind.MOD?loader:"")));
         List<Project> projects=new ArrayList<>();
         for(Object raw:VersionInstaller.list(result.get("data"))){var hit=VersionInstaller.map(raw);List<String> authors=new ArrayList<>();for(Object item:VersionInstaller.list(hit.get("authors")))authors.add(VersionInstaller.str(VersionInstaller.map(item),"name"));
-            projects.add(new Project(source,Json.str(hit,"id"),Json.str(hit,"name"),String.join(", ",authors),Json.str(hit,"summary"),Json.str(VersionInstaller.map(hit.get("links")),"websiteUrl"),kind));}
-        return new Page(projects,(int)Json.num(VersionInstaller.map(result.get("pagination")),"totalCount",0));
+            List<String> tags=new ArrayList<>();for(Object entry:VersionInstaller.list(hit.get("categories")))tags.add(Objects.toString(VersionInstaller.map(entry).get("name"),""));
+            projects.add(new Project(source,Json.str(hit,"id"),Json.str(hit,"name"),String.join(", ",authors),Json.str(hit,"summary"),Json.str(VersionInstaller.map(hit.get("links")),"websiteUrl"),kind,Objects.toString(VersionInstaller.map(hit.get("logo")).get("thumbnailUrl"),""),Json.num(hit,"downloadCount",0),Objects.toString(hit.get("dateModified"),""),tags,List.of()));}
+        int total=(int)Json.num(VersionInstaller.map(result.get("pagination")),"totalCount",0);return new Page(projects,total,offset+projects.size()<total,"");
+    }
+    List<Category> categories(Source source,Kind kind)throws IOException{
+        List<Category> result=new ArrayList<>();
+        if(source==Source.ALL){for(Source provider:List.of(Source.MODRINTH,Source.CURSEFORGE))if(provider!=Source.CURSEFORGE||!key.isEmpty())try{result.addAll(categories(provider,kind));}catch(IOException ignored){}return result;}
+        if(source==Source.MODRINTH){for(Object raw:VersionInstaller.list(request("https://api.modrinth.com/v2/tag/category"))){var value=VersionInstaller.map(raw);if((kind.mr.equals(value.get("project_type"))||kind==Kind.DATA&&"mod".equals(value.get("project_type")))&&"categories".equals(value.get("header"))){String name=Json.str(value,"name");result.add(new Category(source,name,categoryName(name)));}}}
+        else{var response=VersionInstaller.map(request("https://api.curseforge.com/v1/categories?gameId=432&classId="+kind.cf));for(Object raw:VersionInstaller.list(response.get("data"))){var value=VersionInstaller.map(raw);result.add(new Category(source,Json.str(value,"id"),Json.str(value,"name")));}}
+        return result;
+    }
+    static String categoryName(String name){return switch(name){case "optimization"->"性能优化";case "adventure"->"冒险探索";case "technology"->"科技";case "magic"->"魔法";case "utility"->"实用工具";case "library"->"前置 / 类库";case "decoration"->"装饰";case "worldgen"->"世界生成";case "equipment"->"装备";case "storage"->"存储";case "game-mechanics"->"游戏机制";default->name;};
     }
     List<FileVersion> versions(Project project,String game,String loader,int offset)throws IOException{
         if(project.source()==Source.MODRINTH){
             String url="https://api.modrinth.com/v2/project/"+DownloadCatalog.encode(project.id())+"/version?";
             if(!game.isBlank())url+="game_versions="+DownloadCatalog.encode(Json.write(List.of(game)))+"&";
             if(!loader.isBlank()&&project.kind()==Kind.MOD)url+="loaders="+DownloadCatalog.encode(Json.write(List.of(loader)));
-            List<FileVersion> result=new ArrayList<>();for(Object raw:VersionInstaller.list(request(url)))result.add(modrinth(VersionInstaller.map(raw)));return result;
+            if(project.kind()==Kind.DATA)url+="loaders="+DownloadCatalog.encode(Json.write(List.of("datapack")));
+            List<FileVersion> result=new ArrayList<>();for(Object raw:VersionInstaller.list(request(url))){FileVersion file=modrinth(VersionInstaller.map(raw));if(project.kind()!=Kind.DATA||file.loaders().contains("datapack")&&file.filename().toLowerCase(Locale.ROOT).endsWith(".zip"))result.add(file);}return result;
         }
         var response=VersionInstaller.map(request("https://api.curseforge.com/v1/mods/"+DownloadCatalog.encode(project.id())+"/files?pageSize=50&index="+offset+filters(game,project.kind()==Kind.MOD?loader:"")));
-        List<FileVersion> result=new ArrayList<>();for(Object raw:VersionInstaller.list(response.get("data")))result.add(curse(VersionInstaller.map(raw)));return result;
+        List<FileVersion> result=new ArrayList<>();for(Object raw:VersionInstaller.list(response.get("data"))){FileVersion file=curse(VersionInstaller.map(raw));if(project.kind()!=Kind.DATA||file.filename().toLowerCase(Locale.ROOT).endsWith(".zip"))result.add(file);}return result;
     }
     FileVersion file(Source source,String project,String id)throws IOException{
         return source==Source.MODRINTH?modrinth(VersionInstaller.map(request("https://api.modrinth.com/v2/version/"+DownloadCatalog.encode(id)))):curse(VersionInstaller.map(VersionInstaller.map(request("https://api.curseforge.com/v1/mods/"+project+"/files/"+id)).get("data")));
@@ -99,7 +130,7 @@ final class ContentCatalog {
         List<FileVersion> versions=versions(api,game,"fabric",0);if(versions.isEmpty())throw new IOException("尚无兼容 "+game+" 的 Fabric API，可取消自动 Fabric API 后安装");
         download(versions.get(0),instance.resolve("mods"),installer);
     }
-    static String filters(String game,String loader){return (game.isBlank()?"":"&gameVersion="+DownloadCatalog.encode(game))+(game.isBlank()||loader.isBlank()?"":"&modLoaderType="+switch(loader){case "forge"->1;case "fabric"->4;case "quilt"->5;case "neoforge"->6;default->0;});}
+    static String filters(String game,String loader){return (game.isBlank()?"":"&gameVersion="+DownloadCatalog.encode(game))+(loader.isBlank()?"":"&modLoaderType="+switch(loader){case "forge"->1;case "fabric"->4;case "quilt"->5;case "neoforge"->6;default->0;});}
     static String installedLoader(Map<String,Object> metadata){
         String selected=VersionInstaller.str(metadata,"mxcloudLoader");if(!selected.isBlank())return "vanilla".equals(selected)?"":selected;
         for(Object value:VersionInstaller.list(metadata.get("libraries"))){String name=VersionInstaller.str(VersionInstaller.map(value),"name");if(name.startsWith("org.quiltmc:quilt-loader:"))return "quilt";if(name.startsWith("net.fabricmc:fabric-loader:"))return "fabric";if(name.startsWith("net.neoforged:"))return "neoforge";if(name.startsWith("net.minecraftforge:forge:"))return "forge";}

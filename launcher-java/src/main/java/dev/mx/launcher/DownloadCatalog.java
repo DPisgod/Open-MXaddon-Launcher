@@ -11,7 +11,13 @@ final class DownloadCatalog {
     static final String MANIFEST="https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     enum Loader { VANILLA("原版"), FABRIC("Fabric"), QUILT("Quilt"), FORGE("Forge"), NEOFORGE("NeoForge");
         final String label; Loader(String label){this.label=label;} public String toString(){return label;} }
-    record Game(String id,String type,String url,String sha1){public String toString(){return id+"  ·  "+switch(type){case "release"->"正式版";case "snapshot"->"快照 / 预发布";case "old_beta"->"历史 Beta";case "old_alpha"->"历史 Alpha";default->type;};}}
+    record Game(String id,String type,String url,String sha1,String released){
+        Game(String id,String type,String url,String sha1){this(id,type,url,sha1,"");}
+        boolean special(){return Set.of("15w14a","1.RV-Pre1","3D Shareware v1.34","20w14infinite","22w13oneblockatatime","23w13a_or_b","24w14potato","25w14craftmine").contains(id)||id.matches(".*(?:craftmine|potato|infinite|oneblockatatime|_or_b).*");}
+        String category(){return special()?"愚人节":switch(type){case "release"->"正式版";case "snapshot"->"预览版";default->"远古版";};}
+        String date(){try{return java.time.OffsetDateTime.parse(released).atZoneSameInstant(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"));}catch(Exception e){return released;}}
+        public String toString(){return id+"  ·  "+category();}
+    }
     record LoaderVersion(Loader loader,String version,boolean stable){public String toString(){return version+(stable?"":"  · 测试版");}}
     record Options(String minecraft,Loader loader,String loaderVersion,boolean fabricApi,boolean autoJava,String name){
         String id(){return name==null||name.isBlank()?minecraft+(loader==Loader.VANILLA?"":"-"+loader.label+"-"+loaderVersion):name.strip();}
@@ -24,7 +30,7 @@ final class DownloadCatalog {
     Map<String,Object> object(String url)throws IOException{return VersionInstaller.map(json(url));}
     List<Game> games()throws IOException{
         List<Game> result=new ArrayList<>();
-        for(Object item:VersionInstaller.list(object(MANIFEST).get("versions"))){var value=VersionInstaller.map(item);result.add(new Game(Json.str(value,"id"),Json.str(value,"type"),Json.str(value,"url"),Json.str(value,"sha1")));}
+        for(Object item:VersionInstaller.list(object(MANIFEST).get("versions"))){var value=VersionInstaller.map(item);result.add(new Game(Json.str(value,"id"),Json.str(value,"type"),Json.str(value,"url"),Json.str(value,"sha1"),Objects.toString(value.get("releaseTime"),"")));}
         return result;
     }
     List<LoaderVersion> loaders(Loader loader,String game)throws IOException{

@@ -64,7 +64,7 @@ final class UiTheme {
     });}
     static final class Toggle extends JCheckBox {
         Toggle(String text,boolean selected){super(text,selected);setOpaque(false);setFont(font(12,false));setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));setPreferredSize(new Dimension(240,28));}
-        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setFont(getFont());g.setColor(p().text());FontMetrics metrics=g.getFontMetrics();g.drawString(getText(),0,(getHeight()-metrics.getHeight())/2+metrics.getAscent());int x=getWidth()-36,y=(getHeight()-20)/2;g.setColor(isSelected()?p().accent():p().line());g.fillRoundRect(x,y,36,20,20,20);g.setColor(isSelected()?p().accentText():p().muted());g.fillOval(x+(isSelected()?19:3),y+3,14,14);if(UiTheme.showFocus(this)){g.setColor(p().accent());g.drawRoundRect(x-2,y-2,40,24,24,24);}g.dispose();}
+        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setFont(getFont());g.setColor(isEnabled()?p().text():p().muted());FontMetrics metrics=g.getFontMetrics();g.drawString(getText(),0,(getHeight()-metrics.getHeight())/2+metrics.getAscent());int x=getWidth()-36,y=(getHeight()-20)/2;g.setColor(isEnabled()&&isSelected()?p().accent():p().line());g.fillRoundRect(x,y,36,20,20,20);g.setColor(isEnabled()&&isSelected()?p().accentText():p().muted());g.fillOval(x+(isSelected()?19:3),y+3,14,14);if(UiTheme.showFocus(this)){g.setColor(p().accent());g.drawRoundRect(x-2,y-2,40,24,24,24);}g.dispose();}
     }
     static void combo(JComboBox<?> box){
         box.setFont(font(13,false));box.setBackground(p().surface());box.setForeground(p().text());box.setFocusable(false);
