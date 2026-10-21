@@ -129,7 +129,7 @@ if (Test-Path (Join-Path $Here "shell\使用说明.txt")) {
 if (-not $SkipJre) {
     Write-Host "  生成精简 JRE ..."
     & "$JDK\bin\jlink.exe" `
-        --add-modules java.base,java.desktop,java.logging,java.prefs,jdk.unsupported,java.management `
+        --add-modules java.base,java.desktop,java.logging,java.prefs,jdk.unsupported,java.management,jdk.crypto.ec `
         --strip-debug --no-header-files --no-man-pages --compress=zip-6 `
         --output "$dist\runtime" 2>&1 | Out-Null
     if (Test-Path "$dist\runtime\bin\javaw.exe") {
