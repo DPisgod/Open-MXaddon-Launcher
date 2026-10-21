@@ -16,8 +16,8 @@ Minecraft **Fabric 1.21.1** 启动器：安装游戏版本、管理账号与 Mod
 
 | 文件 | 说明 |
 |---|---|
-| `MXCloud-Setup-1.1.1.exe` | 安装包（推荐）：安装向导、开始菜单/桌面快捷方式、完整性校验、自带卸载程序 |
-| `MXCloud-Launcher-1.1.1-portable.zip` | 免安装：解压后直接双击 `MXCloud启动器.exe` |
+| `MXCloud-Setup-1.0.0.exe` | 安装包（推荐）：安装向导、开始菜单/桌面快捷方式、完整性校验、自带卸载程序 |
+| `MXCloud-Launcher-1.0.0-portable.zip` | 免安装：解压后直接双击 `MXCloud启动器.exe` |
 
 两者都自带精简 Java 21 运行时，不需要另装 Java。首次启动后在主页版本列表选
 「添加版本…」一键安装 Minecraft 1.21.1 + Fabric，之后即可点「启动游戏」。
