@@ -53,7 +53,7 @@ final class GameLauncher {
         values.put("user_properties","{}");values.put("auth_xuid","");values.put("clientid","");
         values.put("natives_directory",natives.toString());values.put("library_directory",libraries.toString());
         values.put("classpath_separator",File.pathSeparator);values.put("classpath",String.join(File.pathSeparator,classpath.stream().map(Path::toString).toList()));
-        values.put("launcher_name","OML");values.put("launcher_version",ApplicationVersion.CURRENT);
+        values.put("launcher_name","Open-MXaddon-Launcher");values.put("launcher_version",ApplicationVersion.CURRENT);
         values.put("resolution_width","854");values.put("resolution_height","480");
         List<String> command=new ArrayList<>();command.add(GameJava.executable(root,major));
         command.add("-Xms"+Math.min(1024,memoryMb)+"M");command.add("-Xmx"+Math.max(1024,memoryMb)+"M");

@@ -28,7 +28,7 @@ public final class Main {
             instance.onActivation(()->{
                 if(mainWindow!=null&&mainWindow.isDisplayable())activate(mainWindow);
             });
-        }catch(java.io.IOException failure){javax.swing.JOptionPane.showMessageDialog(null,failure.getMessage(),"OML",javax.swing.JOptionPane.WARNING_MESSAGE);return;}
+        }catch(java.io.IOException failure){javax.swing.JOptionPane.showMessageDialog(null,failure.getMessage(),"Open-MXaddon-Launcher",javax.swing.JOptionPane.WARNING_MESSAGE);return;}
         LauncherRuntime.diagnostics(LauncherPaths.home());
         // 关掉 JNA 的噪声日志
         Logger.getLogger("com.sun.jna").setLevel(Level.OFF);

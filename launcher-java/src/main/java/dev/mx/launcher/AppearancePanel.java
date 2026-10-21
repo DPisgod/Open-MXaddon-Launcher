@@ -22,7 +22,7 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
     private final WallpaperView preview;
     private final JPanel grid;
     private final JLabel message=UiTheme.muted("选择壁纸，在右侧预览后应用。",12);
-    private final JLabel previewName=UiTheme.muted("内置风景 · 静态壁纸",12);
+    private final JLabel previewName=UiTheme.muted("Windows10 · 默认静态壁纸",12);
     private final UiTheme.Button importButton=new UiTheme.Button("导入壁纸","upload",UiTheme.Tone.PRIMARY);
     private final UiTheme.Button applyButton=new UiTheme.Button("应用壁纸","",UiTheme.Tone.PRIMARY);
     private final UiTheme.Button playButton=new UiTheme.Button("暂停预览","pause",UiTheme.Tone.SURFACE);
@@ -101,12 +101,13 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
     }
     private void rebuildTiles(){
         grid.removeAll();tiles.clear();Tile builtIn=new Tile(null);tiles.add(builtIn);grid.add(builtIn);
+        for(WallpaperLibrary.Item item:library.builtIns()){Tile tile=new Tile(item);tiles.add(tile);grid.add(tile);}
         for(WallpaperLibrary.Item item:library.items()){Tile tile=new Tile(item);tiles.add(tile);grid.add(tile);}for(Tile tile:tiles)tile.setTransferHandler(getTransferHandler());grid.revalidate();grid.repaint();
     }
     private void select(WallpaperLibrary.Item item){selected=item;draft.wallpaper=item==null?"":item.id();manualPause=false;restartPreview();grid.repaint();}
     private void restartPreview(){
         preview.options(draft);previewPlayer.select(selected,draft);previewPlayer.setPaused(!active||manualPause);
-        previewName.setText(selected==null?"内置风景 · 静态壁纸":selected.extension().toUpperCase()+" · "+(selected.animated()?"动态壁纸":"静态壁纸"));playButton.setEnabled(selected!=null&&selected.animated());playButton.setText(manualPause?"继续预览":"暂停预览");
+        previewName.setText(selected==null?"Windows10 · 默认静态壁纸":selected.title()+" · "+(selected.animated()?"动态壁纸":"静态壁纸"));playButton.setEnabled(selected!=null&&selected.animated());playButton.setText(manualPause?"继续预览":"暂停预览");
     }
     void setActive(boolean value){active=value;previewPlayer.setPaused(!value||manualPause);}
     Appearance draft(){return draft.copy();}
@@ -125,14 +126,14 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
     private final class Tile extends JButton {
         final WallpaperLibrary.Item item;BufferedImage image;
         Tile(WallpaperLibrary.Item item){
-            this.item=item;setPreferredSize(new Dimension(200,145));setMinimumSize(new Dimension(100,110));setBorderPainted(false);setContentAreaFilled(false);setFocusPainted(false);setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));getAccessibleContext().setAccessibleName(item==null?"内置风景":item.name());
+            this.item=item;setPreferredSize(new Dimension(200,145));setMinimumSize(new Dimension(100,110));setBorderPainted(false);setContentAreaFilled(false);setFocusPainted(false);setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));getAccessibleContext().setAccessibleName(item==null?WallpaperLibrary.DEFAULT_NAME:item.id().startsWith("builtin:")?item.title():item.name());
             try{image=item==null?new WallpaperPlayer().frame():ImageIO.read(item.thumbnail().toFile());}catch(Exception ignored){}
             addActionListener(e->select(item));
         }
         @Override protected void paintComponent(Graphics graphics){
             Graphics2D g=(Graphics2D)graphics.create();Shape viewportClip=g.getClip();UiTheme.quality(g);int w=getWidth(),h=getHeight();g.clip(new java.awt.geom.RoundRectangle2D.Double(2,2,w-4,h-4,16,16));g.setColor(UiTheme.p().background());g.fillRect(0,0,w,h);
             if(image!=null){double scale=Math.max(w/(double)image.getWidth(),h/(double)image.getHeight());int iw=(int)(image.getWidth()*scale),ih=(int)(image.getHeight()*scale);g.drawImage(image,(w-iw)/2,(h-ih)/2,iw,ih,null);}
-            g.setPaint(new GradientPaint(0,h/2f,new Color(0,0,0,0),0,h,new Color(0,0,0,190)));g.fillRect(0,0,w,h);g.setColor(Color.WHITE);g.setFont(UiTheme.font(12,true));String title=item==null?"内置风景":item.title();FontMetrics fm=g.getFontMetrics();while(title.length()>1&&fm.stringWidth(title)>w-24)title=title.substring(0,title.length()-1);g.drawString(title,12,h-15);
+            g.setPaint(new GradientPaint(0,h/2f,new Color(0,0,0,0),0,h,new Color(0,0,0,190)));g.fillRect(0,0,w,h);g.setColor(Color.WHITE);g.setFont(UiTheme.font(12,true));String title=item==null?WallpaperLibrary.DEFAULT_NAME:item.title();FontMetrics fm=g.getFontMetrics();while(title.length()>1&&fm.stringWidth(title)>w-24)title=title.substring(0,title.length()-1);g.drawString(title,12,h-15);
             String badge=item==null?"默认":item.extension().toUpperCase();g.setFont(UiTheme.font(10,false));int bw=g.getFontMetrics().stringWidth(badge)+14;g.setColor(new Color(17,30,46,175));g.fillRoundRect(w-bw-9,9,bw,22,7,7);g.setColor(Color.WHITE);g.drawString(badge,w-bw-2,24);
             if(item!=null&&item.animated()){g.setColor(new Color(0,0,0,100));g.fillOval(w/2-17,h/2-17,34,34);g.setColor(Color.WHITE);UiTheme.icon(g,"play",w/2-8,h/2-9,18);}
             g.setClip(viewportClip);boolean chosen=item==null?draft.wallpaper.isEmpty():item.id().equals(draft.wallpaper);if(chosen||UiTheme.showFocus(this)){g.setStroke(new BasicStroke(2));g.setColor(UiTheme.p().accent());g.drawRoundRect(1,1,w-3,h-3,16,16);}g.dispose();

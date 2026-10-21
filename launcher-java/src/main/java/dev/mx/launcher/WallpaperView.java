@@ -38,7 +38,7 @@ final class WallpaperView extends JPanel {
         }
         if(previewUi){
             int opacity=Math.round(255*(1-options.uiTransparency/100f));g.setColor(UiTheme.alpha(UiTheme.p().surface(),opacity));g.fillRect(0,0,w,27);g.fillRoundRect(10,h-36,w-20,26,10,10);
-            g.setFont(UiTheme.font(10,true));g.setColor(UiTheme.p().text());g.drawString("OML",11,18);g.setFont(UiTheme.font(9,false));g.drawString("游戏账号",20,h-19);g.setColor(UiTheme.p().accent());g.fillRoundRect(w-76,h-31,55,16,8,8);g.setColor(UiTheme.p().accentText());g.drawString("启动游戏",w-67,h-19);
+            g.setFont(UiTheme.font(10,true));g.setColor(UiTheme.p().text());g.drawString("Open-MXaddon-Launcher",11,18);g.setFont(UiTheme.font(9,false));g.drawString("游戏账号",20,h-19);g.setColor(UiTheme.p().accent());g.fillRoundRect(w-76,h-31,55,16,8,8);g.setColor(UiTheme.p().accentText());g.drawString("启动游戏",w-67,h-19);
         }
         g.dispose();super.paintComponent(graphics);
     }

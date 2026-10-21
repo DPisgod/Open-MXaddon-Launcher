@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared Mx artwork for the operating system and the in-page brand. */
+/** Shared OML monogram for Open-MXaddon-Launcher and the operating system. */
 final class ApplicationIcon {
     private static final List<Image> IMAGES = load();
 

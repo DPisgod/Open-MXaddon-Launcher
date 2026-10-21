@@ -77,15 +77,11 @@
 
 实机证据与构建校验存放在被 Git 忽略的 `artifacts/ui-pretty-evidence/`。
 
-## 默认壁纸素材
+## 内置壁纸素材
 
-资源：`launcher-java/src/main/resources/wallpapers/default-landscape.png`。使用内置 image_gen 生成，作为当前项目随包素材，原始图片保留在 Codex generated_images 目录。提示词：
-
-> Use case: illustration-story. Asset type: default wallpaper background for a premium Minecraft desktop launcher. Generate a beautiful cinematic Minecraft voxel landscape, wide 16:9 composition, 2560 by 1440 feel. Peaceful alpine lake reflecting distant jagged snowy peaks, pine trees on distant shores, grassy flowering block meadow in foreground, golden dawn sunlight from upper left, cool blue water and softly peach clouds, elegant restrained atmosphere and convincing voxel geometry. Composition keeps central sky and lake calm for desktop controls, horizon above center, important mountains in middle third, darker grass at very bottom for overlay dock readability. High quality physically lit game artwork, detailed but calm, not photorealistic real mountains. No buildings, no characters, no UI, no frame, no logos, no text, no watermark.
-
-本轮 `AppearanceControlsTest` 验证自定义内存只有滑条、MB 数值同步、自动模式禁用滑条、全局保存和重新打开恢复；验证鼠标/键盘焦点、浅深色 0%/50%/100% 背景混合、连续壁纸、最小窗口布局、预览不提前保存和应用持久化。100% UI 透明度下仍检查原生窗口样式，并通过 GDI 与 PrintWindow 获取内容。`WallpaperBehaviorTest`、`MemoryAndClientsTest`、`WindowChromeTest` 和 `VisualPolishTest` 回归通过。
-
-当前机器的完整窗口视频复测（UI 透明度 60%，3 秒预热、5 秒采样）中，30 fps 素材约 30.00/29.79 fps；60 fps 素材约 50.17/49.38 fps（100%/125%）。同环境下提交前版本约 50.95/38.58 fps。60 fps 的源帧率 ±5% 目标本轮未通过，不能把此前满帧结果当作本轮结果。通过缓存遮罩、先合成不透明 RGB 场景并按设备像素绘制，减少 125% 缩放的透明像素变换；没有更改源时间戳播放或跳帧规则。
+默认 Windows10：launcher-java/src/main/resources/wallpapers/Windows10.png，来自用户提供的 QQ20261022-015722.png。原默认风景资源已删除。
+其余五张媒体和预生成缩略图位于 launcher-java/assets/builtin-wallpapers，显示名为水灵灵、线条风、刀客、动漫女孩、红色力量。构建时放入运行目录 Media/BuiltInWallpapers，内置条目不写入个人导入库。
+FFmpeg 的固定版本、校验和及许可证随包提供，构建脚本 prepare-media.ps1 自动准备解码组件。
 
 ## 最大化稳定性修复
 

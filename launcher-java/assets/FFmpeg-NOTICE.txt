@@ -1,0 +1,17 @@
+FFmpeg is Copyright (c) the FFmpeg developers.
+This launcher uses an unmodified, separate LGPL shared FFmpeg process for local wallpaper playback.
+The LGPL license is included in FFmpeg-LICENSE.txt. The shared libraries may be replaced by the user.
+
+Windows build and build scripts:
+https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-10-21-13-06
+https://github.com/BtbN/FFmpeg-Builds
+
+FFmpeg version: n9.0.2-31-gc89d6ee1ca (LGPL shared, Windows x64)
+FFmpeg source:
+https://github.com/FFmpeg/FFmpeg/tree/c89d6ee1ca
+https://github.com/FFmpeg/FFmpeg/archive/c89d6ee1ca.tar.gz
+Build recipes and dependency source locations:
+https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-10-21-13-06
+
+Binary archive SHA-256:
+3c645c674a592f3eb9493617710839c0fc6f824033aaf850874c050616ac554f

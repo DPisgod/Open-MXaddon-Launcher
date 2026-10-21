@@ -102,7 +102,7 @@ $mf = Join-Path $Here "build\MANIFEST.MF"
 Manifest-Version: 1.0
 Main-Class: dev.mx.launcher.Main
 Class-Path: jna-5.14.0.jar jna-platform-5.14.0.jar
-Implementation-Title: OML Launcher
+Implementation-Title: Open-MXaddon-Launcher
 Implementation-Version: $releaseVersion
 
 "@ | Set-Content -Path $mf -Encoding ASCII
@@ -144,6 +144,8 @@ if (-not $SkipJre) {
     }
 }
 Write-Host "  运行目录: $dist"
+
+& (Join-Path $Here 'prepare-media.ps1') -RuntimeDirectory $dist
 
 # ---------- 4. 单文件 exe ----------
 Step 4 4 "生成单文件版"

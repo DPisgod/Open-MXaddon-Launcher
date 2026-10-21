@@ -10,8 +10,9 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 
-/** Local-only wallpaper library. Imported media remains available if its original is moved. */
+/** Bundled wallpapers and a separate local library of imported media. */
 final class WallpaperLibrary {
+    static final String DEFAULT_NAME="Windows10";
     static final Set<String> FORMATS=Set.of("jpg","jpeg","png","webp","gif","mp4","webm");
     record Item(String id,String name,String extension,Path file,Path thumbnail){
         boolean animated(){return Set.of("gif","mp4","webm").contains(extension);}
@@ -19,9 +20,17 @@ final class WallpaperLibrary {
     }
     private final Path root;
     private final List<Item> items=new ArrayList<>();
+    private final List<Item> builtIns=new ArrayList<>();
     private static final ExecutorService IO=Executors.newCachedThreadPool(r->{Thread t=new Thread(r,"mx-wallpaper-probe");t.setDaemon(true);return t;});
     WallpaperLibrary(Path home){
         root=home.resolve("wallpapers").toAbsolutePath().normalize();
+        Path bundled=runtimeDirectory().resolve("Media/BuiltInWallpapers");
+        for(String[] entry:new String[][]{{"shuilingling.mp4","水灵灵.mp4"},{"xiantiaofeng.mp4","线条风.mp4"},{"daoke.mp4","刀客.mp4"},{"anime-girl.mp4","动漫女孩.mp4"},{"hongseliliang.png","红色力量.png"}}){
+            String file=entry[0],ext=file.substring(file.lastIndexOf('.')+1);
+            Path media=bundled.resolve(file),thumbnail=bundled.resolve(file+".thumb.png");
+            if(Files.isRegularFile(media)&&Files.isRegularFile(thumbnail))
+                builtIns.add(new Item("builtin:"+file,entry[1],ext,media,thumbnail));
+        }
         try {
             Object value=Json.parseObject(Files.readString(root.resolve("library.json"))).get("items");
             if(value instanceof List<?> list)for(Object entry:list)if(entry instanceof Map<?,?> m){
@@ -33,7 +42,11 @@ final class WallpaperLibrary {
         }catch(Exception ignored){}
     }
     synchronized List<Item> items(){return List.copyOf(items);}
-    synchronized Item find(String id){return items.stream().filter(i->i.id().equals(id)).findFirst().orElse(null);}
+    List<Item> builtIns(){return List.copyOf(builtIns);}
+    synchronized Item find(String id){
+        Item bundled=builtIns.stream().filter(i->i.id().equals(id)).findFirst().orElse(null);
+        return bundled!=null?bundled:items.stream().filter(i->i.id().equals(id)).findFirst().orElse(null);
+    }
     Item importFile(Path source) throws Exception {
         if(!Files.isRegularFile(source))throw new IOException("请选择本地图片或视频文件");
         String name=source.getFileName().toString();int dot=name.lastIndexOf('.');String ext=dot<0?"":name.substring(dot+1).toLowerCase(Locale.ROOT);
@@ -59,8 +72,11 @@ final class WallpaperLibrary {
     }
     static Path decoder(){
         String override=System.getProperty("mx.ffmpeg");if(override!=null&&!override.isBlank())return Path.of(override);
-        try{return Path.of(WallpaperLibrary.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent().resolve("Media/ffmpeg.exe");}
-        catch(Exception e){return LauncherPaths.home().resolve("Media/ffmpeg.exe");}
+        return runtimeDirectory().resolve("Media/ffmpeg.exe");
+    }
+    private static Path runtimeDirectory(){
+        try{return Path.of(WallpaperLibrary.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();}
+        catch(Exception e){return LauncherPaths.home();}
     }
     static List<String> command(Path source){
         return new ArrayList<>(List.of(decoder().toString(),"-nostdin","-hide_banner","-loglevel","error","-threads","2","-filter_threads","1","-protocol_whitelist","file,pipe","-i",source.toAbsolutePath().toString()));

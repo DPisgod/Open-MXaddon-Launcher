@@ -117,7 +117,8 @@ curseforge-key.dat
 .min/
 wallpapers/
 !launcher-java/src/main/resources/wallpapers/
-!launcher-java/src/main/resources/wallpapers/default-landscape.png
+!launcher-java/src/main/resources/wallpapers/Windows10.png
+launcher-java/.media-cache/
 
 # Historical build outputs
 MXCloud单文件版/

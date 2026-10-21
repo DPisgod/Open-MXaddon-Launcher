@@ -31,29 +31,29 @@ SetCompressorDictSize 32
 !define MUI_UNICON "assets\OML.ico"
 !define MUI_WELCOMEPAGE_TITLE "$InstallTitle"
 !define MUI_WELCOMEPAGE_TEXT "$InstallMessage"
-!define MUI_DIRECTORYPAGE_TEXT_TOP "选择 OML 的安装位置。游戏版本、账号和配置会保存在此目录中。"
-!define MUI_FINISHPAGE_TITLE "OML 已安装"
-!define MUI_FINISHPAGE_TEXT "安装已完成。你可以从桌面或开始菜单启动 OML。"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "选择 Open-MXaddon-Launcher 的安装位置。游戏版本、账号和配置会保存在此目录中。"
+!define MUI_FINISHPAGE_TITLE "Open-MXaddon-Launcher 已安装"
+!define MUI_FINISHPAGE_TEXT "安装已完成。你可以从桌面或开始菜单启动 Open-MXaddon-Launcher。"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchOML
-!define MUI_FINISHPAGE_RUN_TEXT "启动 OML"
+!define MUI_FINISHPAGE_RUN_TEXT "启动 Open-MXaddon-Launcher"
 !define MUI_FINISHPAGE_RUN_NOTCHECKED
 !define MUI_UNCONFIRMPAGE_TEXT_TOP "将永久删除整个安装文件夹，包含游戏、存档、账号、配置、皮肤和壁纸，并清空当前用户的启动器运行时缓存。$\r$\n$\r$\n需要保留的文件请先备份。请先关闭启动器和游戏。"
 
-Name "OML"
-Caption "OML 安装向导"
+Name "Open-MXaddon-Launcher"
+Caption "Open-MXaddon-Launcher 安装向导"
 OutFile "${OUTPUT_FILE}"
 InstallDir "D:\Open-MXaddon-Launcher"
 InstallDirRegKey HKCU "${PRODUCT_KEY}" "InstallDir"
-BrandingText "OML"
+BrandingText "Open-MXaddon-Launcher"
 ShowInstDetails show
 ShowUninstDetails show
 VIProductVersion "${APP_VERSION}.0"
-VIAddVersionKey /LANG=2052 "ProductName" "OML 安装程序"
-VIAddVersionKey /LANG=2052 "FileDescription" "OML 安装向导"
+VIAddVersionKey /LANG=2052 "ProductName" "Open-MXaddon-Launcher 安装程序"
+VIAddVersionKey /LANG=2052 "FileDescription" "Open-MXaddon-Launcher 安装向导"
 VIAddVersionKey /LANG=2052 "FileVersion" "${APP_VERSION}"
 VIAddVersionKey /LANG=2052 "ProductVersion" "${APP_VERSION}"
-VIAddVersionKey /LANG=2052 "LegalCopyright" "OML"
+VIAddVersionKey /LANG=2052 "LegalCopyright" "Open-MXaddon-Launcher"
 
 Var DesktopChoice
 Var DesktopCheckbox
@@ -148,17 +148,17 @@ Function DetectInstallation
     StrCpy $ScanState "repair"
   ${EndIf}
   ${If} $ScanState == "update"
-    StrCpy $InstallTitle "更新 OML"
-    StrCpy $InstallMessage "已检测到完整的 OML 安装。$\r$\n$\r$\n已安装版本：$ExistingVersion$\r$\n本次版本：${APP_VERSION}$\r$\n$\r$\n将更新程序，保留游戏、账号、存档和壁纸。"
+    StrCpy $InstallTitle "更新 Open-MXaddon-Launcher"
+    StrCpy $InstallMessage "已检测到完整的 Open-MXaddon-Launcher 安装。$\r$\n$\r$\n已安装版本：$ExistingVersion$\r$\n本次版本：${APP_VERSION}$\r$\n$\r$\n将更新程序，保留游戏、账号、存档和壁纸。"
   ${ElseIf} $ScanState == "same"
-    StrCpy $InstallTitle "更新 / 重新安装 OML"
-    StrCpy $InstallMessage "已检测到完整的 OML ${APP_VERSION}，版本一致。$\r$\n$\r$\n你可以重新安装当前版本；游戏、账号、存档和壁纸会保留。"
+    StrCpy $InstallTitle "更新 / 重新安装 Open-MXaddon-Launcher"
+    StrCpy $InstallMessage "已检测到完整的 Open-MXaddon-Launcher ${APP_VERSION}，版本一致。$\r$\n$\r$\n你可以重新安装当前版本；游戏、账号、存档和壁纸会保留。"
   ${ElseIf} $ScanState == "repair"
-    StrCpy $InstallTitle "修复 OML"
-    StrCpy $InstallMessage "检测到本地程序文件缺失、校验不一致或版本信息不匹配。$\r$\n$\r$\n将修复为 OML ${APP_VERSION}，保留游戏、账号、存档和壁纸。"
+    StrCpy $InstallTitle "修复 Open-MXaddon-Launcher"
+    StrCpy $InstallMessage "检测到本地程序文件缺失、校验不一致或版本信息不匹配。$\r$\n$\r$\n将修复为 Open-MXaddon-Launcher ${APP_VERSION}，保留游戏、账号、存档和壁纸。"
   ${Else}
-    StrCpy $InstallTitle "欢迎安装 OML ${APP_VERSION}"
-    StrCpy $InstallMessage "将 OML 启动器安装到你的电脑。$\r$\n$\r$\n你可以选择安装位置，以及是否创建桌面快捷方式。$\r$\n$\r$\n启动器自带运行环境，无需另外安装 Java。"
+    StrCpy $InstallTitle "欢迎安装 Open-MXaddon-Launcher ${APP_VERSION}"
+    StrCpy $InstallMessage "将 Open-MXaddon-Launcher 启动器安装到你的电脑。$\r$\n$\r$\n你可以选择安装位置，以及是否创建桌面快捷方式。$\r$\n$\r$\n启动器自带运行环境，无需另外安装 Java。"
   ${EndIf}
 FunctionEnd
 
@@ -192,7 +192,7 @@ Function LaunchOML
   Exec '"$INSTDIR\${APP_EXE}"'
 FunctionEnd
 
-Section "OML" Main
+Section "Open-MXaddon-Launcher" Main
   SetOutPath "$INSTDIR"
   SetOverwrite on
   ClearErrors
@@ -220,24 +220,28 @@ Section "OML" Main
     SetErrorLevel 1
     Abort
   ${EndIf}
-  CreateDirectory "$SMPROGRAMS\OML"
-  ; build_shell.ps1 embeds two identical Mx icon groups. Recreate the links
-  ; and use ordinal 1 to avoid the old ordinal 0 desktop icon cache.
+  CreateDirectory "$SMPROGRAMS\Open-MXaddon-Launcher"
+  ; Use the new OML monogram group at ordinal 2 to avoid legacy icon caches.
   Delete "$SMPROGRAMS\OML\OML.lnk"
-  CreateShortCut "$SMPROGRAMS\OML\OML.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
-  CreateShortCut "$SMPROGRAMS\OML\卸载 OML.lnk" "$INSTDIR\${APP_UNINSTALLER}" "" "$INSTDIR\${APP_UNINSTALLER}" 0
+  Delete "$SMPROGRAMS\OML\卸载 OML.lnk"
+  RMDir "$SMPROGRAMS\OML"
+  Delete "$DESKTOP\OML.lnk"
+  Delete "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk"
+  CreateShortCut "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 2
+  CreateShortCut "$SMPROGRAMS\Open-MXaddon-Launcher\卸载 Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_UNINSTALLER}" "" "$INSTDIR\${APP_UNINSTALLER}" 0
   ${If} $DesktopChoice == ${BST_CHECKED}
     Delete "$DESKTOP\OML.lnk"
-    CreateShortCut "$DESKTOP\OML.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 1
+    Delete "$DESKTOP\Open-MXaddon-Launcher.lnk"
+    CreateShortCut "$DESKTOP\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 2
   ${EndIf}
   WriteRegStr HKCU "${PRODUCT_KEY}" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${PRODUCT_KEY}" "LastInstallMode" "$ScanState"
   WriteRegDWORD HKCU "${PRODUCT_KEY}" "DesktopShortcut" $DesktopChoice
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "OML"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "Open-MXaddon-Launcher"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "OML"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Open-MXaddon-Launcher"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" '$\"$INSTDIR\${APP_EXE}$\",1'
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" '$\"$INSTDIR\${APP_EXE}$\",2'
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\${APP_UNINSTALLER}$\"'
   WriteRegStr HKCU "${UNINSTALL_KEY}" "QuietUninstallString" '$\"$INSTDIR\${APP_UNINSTALLER}$\" /S'
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1
@@ -421,6 +425,10 @@ Section "Uninstall"
   IfFileExists "$INSTDIR" incomplete_cleanup
   IfFileExists "$RuntimeTarget" incomplete_cleanup
   Delete "$DESKTOP\OML.lnk"
+  Delete "$DESKTOP\Open-MXaddon-Launcher.lnk"
+  Delete "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk"
+  Delete "$SMPROGRAMS\Open-MXaddon-Launcher\卸载 Open-MXaddon-Launcher.lnk"
+  RMDir "$SMPROGRAMS\Open-MXaddon-Launcher"
   Delete "$SMPROGRAMS\OML\OML.lnk"
   Delete "$SMPROGRAMS\OML\卸载 OML.lnk"
   RMDir "$SMPROGRAMS\OML"

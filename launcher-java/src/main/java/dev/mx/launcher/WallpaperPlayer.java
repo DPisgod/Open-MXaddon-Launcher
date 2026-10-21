@@ -127,7 +127,7 @@ final class WallpaperPlayer implements AutoCloseable {
     private static final class DefaultImage {static final BufferedImage IMAGE=loadDefaultImage();}
     private static BufferedImage defaultImage(){return DefaultImage.IMAGE;}
     private static BufferedImage loadDefaultImage(){
-        try(InputStream in=WallpaperPlayer.class.getResourceAsStream("/wallpapers/default-landscape.png")){if(in!=null){BufferedImage image=ImageIO.read(in);if(image!=null)return image;}}
+        try(InputStream in=WallpaperPlayer.class.getResourceAsStream("/wallpapers/Windows10.png")){if(in!=null){BufferedImage image=ImageIO.read(in);if(image!=null)return image;}}
         catch(IOException ignored){}
         BufferedImage image=new BufferedImage(1280,720,BufferedImage.TYPE_INT_RGB);Graphics2D g=image.createGraphics();
         g.setPaint(new GradientPaint(0,0,new Color(0x779CC0),1280,720,new Color(0x284F69)));g.fillRect(0,0,1280,720);g.dispose();return image;

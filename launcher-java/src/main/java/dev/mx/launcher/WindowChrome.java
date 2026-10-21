@@ -10,7 +10,7 @@ import java.awt.geom.RoundRectangle2D;
 final class WindowChrome {
     private WindowChrome(){}
     static void undecorate(Window window){
-        if(window instanceof JFrame frame){frame.setUndecorated(true);if(frame.getTitle().isBlank())frame.setTitle("OML");}
+        if(window instanceof JFrame frame){frame.setUndecorated(true);if(frame.getTitle().isBlank())frame.setTitle("Open-MXaddon-Launcher");}
         if(window instanceof JDialog dialog){dialog.setName(dialog.getTitle());dialog.setUndecorated(true);}
         window.setIconImages(ApplicationIcon.images());
         // QQ's smart window selection skips per-pixel layered windows. Keep an ordinary opaque HWND.

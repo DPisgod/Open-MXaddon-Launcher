@@ -214,7 +214,7 @@ static bool run_hidden(const std::wstring &cmdline, DWORD timeoutMs = 180000) {
 
 /** 弹窗报错（Windows 子系统下没有控制台，必须用对话框）。 */
 static void fail_box(const std::wstring &msg) {
-    MessageBoxW(nullptr, msg.c_str(), L"OML 启动器", MB_ICONERROR | MB_OK);
+    MessageBoxW(nullptr, msg.c_str(), L"Open-MXaddon-Launcher", MB_ICONERROR | MB_OK);
 }
 
 struct ExtractionGuard {
@@ -241,11 +241,14 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 
     const std::wstring jarPath = cacheDir + L"\\mxaddon-launcher.jar";
     const std::wstring jreDir  = cacheDir + L"\\runtime";
+    const std::wstring mediaExe = cacheDir + L"\\Media\\ffmpeg.exe";
+    const std::wstring bundledVideo = cacheDir + L"\\Media\\BuiltInWallpapers\\shuilingling.mp4";
 
     // 1) 检查缓存：jar / jre 齐全则跳过解压
     const std::wstring ready = cacheDir + L"\\runtime.ready";
     bool cached = file_exists(ready) && file_exists(jarPath)
-               && file_exists(jreDir + L"\\bin\\javaw.exe");
+               && file_exists(jreDir + L"\\bin\\javaw.exe")
+               && file_exists(mediaExe) && file_exists(bundledVideo);
     logf(L"cached   = %d", cached ? 1 : 0);
 
     if (!cached) {
@@ -280,7 +283,8 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
         logf(L"解压完成");
         DeleteFileW(zipPath.c_str());
 
-        if (!file_exists(jarPath) || !file_exists(jreDir + L"\\bin\\javaw.exe")) {
+        if (!file_exists(jarPath) || !file_exists(jreDir + L"\\bin\\javaw.exe")
+            || !file_exists(mediaExe) || !file_exists(bundledVideo)) {
             logf(L"[FAIL] 解压结果不完整: jar=%d jre=%d",
                  file_exists(jarPath) ? 1 : 0,
                  file_exists(jreDir + L"\\bin\\javaw.exe") ? 1 : 0);

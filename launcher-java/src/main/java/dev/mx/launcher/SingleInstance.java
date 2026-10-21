@@ -63,7 +63,7 @@ final class SingleInstance implements AutoCloseable {
                 }catch(IOException|IllegalArgumentException ignored){}
                 try{Thread.sleep(100);}catch(InterruptedException stopped){Thread.currentThread().interrupt();throw new IOException(stopped);}
             }
-            throw new IOException("已检测到运行中的 OML，但暂时无法唤起窗口。请稍后重试。");
+            throw new IOException("已检测到运行中的 Open-MXaddon-Launcher，但暂时无法唤起窗口。请稍后重试。");
         }catch(IOException failure){channel.close();throw failure;}
     }
     private interface Foreground extends com.sun.jna.win32.StdCallLibrary{

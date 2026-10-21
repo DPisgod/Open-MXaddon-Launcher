@@ -10,7 +10,7 @@ public final class WindowChromeTest {
     public static void main(String[] args)throws Exception{
         LauncherRuntime.configureRendering();
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());LauncherPaths.override(Files.createTempDirectory("mx-window-chrome-"));LauncherFrame[] frame=new LauncherFrame[1];
-        SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);check(frame[0].isUndecorated()&&frame[0].getTitle().equals("OML"),"capture name or borderless style missing");
+        SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);check(frame[0].isUndecorated()&&frame[0].getTitle().equals("Open-MXaddon-Launcher"),"capture name or borderless style missing");
             Container root=frame[0].getContentPane();Component heading=((BorderLayout)root.getLayout()).getLayoutComponent(BorderLayout.NORTH);Rectangle before=frame[0].getBounds();drag(heading,30,20,before.x+30,before.y+20,70,45,before.x+70,before.y+45);check(frame[0].getX()==before.x+40&&frame[0].getY()==before.y+25,"heading drag failed");
             Component glass=frame[0].getGlassPane();before=frame[0].getBounds();drag(glass,before.width-1,100,before.x+before.width-1,before.y+100,before.width+39,100,before.x+before.width+39,before.y+100);check(frame[0].getWidth()==before.width+40,"edge resize failed");
             check(!glass.contains(100,100)&&glass.contains(1,100),"edge overlay blocks content");button(frame[0],"最大化 / 还原窗口").doClick();

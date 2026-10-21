@@ -1,6 +1,6 @@
 # launcher-java
 
-OML 启动器的界面与启动逻辑，全部为纯 Java 实现。
+Open-MXaddon-Launcher的界面与启动逻辑，全部为纯 Java 实现。
 
 ## 组成
 

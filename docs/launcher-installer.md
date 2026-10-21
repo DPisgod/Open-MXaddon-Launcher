@@ -1,12 +1,12 @@
-# OML Windows 安装包
+# Open-MXaddon-Launcher Windows 安装包
 
 安装包使用 NSIS 3，提供简体中文安装向导：选择安装目录（首次默认 `D:\Open-MXaddon-Launcher`）、选择是否创建桌面快捷方式、安装、完成。再次安装会记住之前的位置。开始菜单也有启动与卸载入口，完成后可以勾选启动程序。
 
-安装目录生成单文件启动器（内含运行环境）、使用说明、`卸载 OML-Mx.exe` 和隐藏的 `.mx-install.ini` 完整性清单，不另外释放 ICO 文件。不包含账号、游戏版本或个人壁纸。首次游戏安装仍由启动器的一键安装完成。
+安装目录生成单文件启动器（内含运行环境）、使用说明、`卸载 OML.exe` 和隐藏的 `.mx-install.ini` 完整性清单，不另外释放 ICO 文件。不包含账号、游戏版本或个人壁纸。首次游戏安装仍由启动器的一键安装完成。
 
-桌面和开始菜单的启动快捷方式读取启动器 EXE 内嵌图标；卸载快捷方式读取卸载 EXE 内嵌图标。安装/卸载向导、启动器 EXE、任务栏和界面左上角统一使用蓝底 Mx（大写 M、小写 x）图标。矢量源图位于 `launcher-java/assets/launcher-icon.svg`，可通过同目录的 `build-icons.py`（需要 Pillow）生成多尺寸 ICO/PNG，输出位于 `launcher-java/src/main/resources/icons`。安装包构建时会同步 `installer/assets` 的图标，并将其编译进 EXE 资源。
+桌面和开始菜单的启动快捷方式读取启动器 EXE 内嵌图标；卸载快捷方式读取卸载 EXE 内嵌图标。安装/卸载向导、启动器 EXE、任务栏和界面左上角统一使用蓝色渐变底、白色 OML 字母图标。矢量源图位于 `launcher-java/assets/launcher-icon.svg`，可通过同目录的 `build-icons.py`（需要 Pillow）生成多尺寸 ICO/PNG，输出位于 `launcher-java/src/main/resources/icons`。安装包构建时会同步 `installer/assets` 的图标，并将其编译进 EXE 资源。
 
-启动器 EXE 内嵌两个相同的 Mx 图标条目。启动快捷方式在安装/升级时重新创建，并引用第二个条目（图标索引 `1`），避开历史第 0 个图标的缓存键。这里使用 NSIS 支持的正索引，防止负资源索引被它截断成 4095；安装目录仍不生成外置 ICO。
+启动器 EXE 内嵌三个相同的 OML 图标条目。启动快捷方式在安装/升级时重新创建，并引用第三个条目（图标索引 `2`），避开历史第 0/1 个图标的缓存键。这里使用 NSIS 支持的正索引，防止负资源索引被它截断成 4095；安装目录仍不生成外置 ICO。
 
 默认按当前用户安装，无需管理员权限；选择的目录必须允许当前用户写入。需要 Windows 10/11 x64。卸载会永久删除整个安装目录，包括 `.minecraft`、游戏、存档、账号、设置、皮肤和壁纸，同时清空当前用户 `%TEMP%\OML` 解压运行时缓存。请先关闭启动器及游戏，并备份需要保留的文件。升级安装仍保留用户数据，只有卸载执行完全清理。
 
@@ -16,7 +16,7 @@
 pwsh -File installer/build-installer.ps1 -LauncherExe '路径\OML启动器.exe' -NsisCompiler '路径\makensis.exe'
 ```
 
-默认输出为 `artifacts/installer/OML-Setup-<版本>.exe`，并同步替换源码根目录的 `OML安装包-Mx.exe`，同时输出 SHA-256 构建清单。也可指定 `-ReadmeFile`、`-OutputDirectory` 和 `-Version`。编译采用文件白名单，不扫描或打包启动器数据目录。
+默认输出为 `artifacts/installer/OML-Setup-<版本>.exe`，并同步替换源码根目录的 `OML安装包.exe`，同时输出 SHA-256 构建清单。也可指定 `-ReadmeFile`、`-OutputDirectory` 和 `-Version`。编译采用文件白名单，不扫描或打包启动器数据目录。
 
 一键构建（含启动器与安装包）使用根目录的 `一键构建.cmd` / `build-all.ps1`。
 
