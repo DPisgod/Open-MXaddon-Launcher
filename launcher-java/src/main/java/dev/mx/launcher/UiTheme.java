@@ -16,6 +16,13 @@ final class UiTheme {
     static final Palette LIGHT=new Palette(false,new Color(0xF0F4F6),Color.WHITE,new Color(0x182738),new Color(0x64758A),new Color(0xDFE6EB),new Color(0x245EEA),Color.WHITE);
     static final Palette DARK=new Palette(true,new Color(0x111C28),new Color(0x1C2A3A),new Color(0xF0F4F8),new Color(0x9BAEC3),new Color(0x304054),new Color(0x9AC5FF),new Color(0x112846));
     private static Palette current=LIGHT;
+    private static String style="rounded",mode="system";
+    private static final Palette CYBER_DARK=new Palette(true,new Color(0x090E1D),new Color(0x111B32),new Color(0xEDF6FF),new Color(0x9DADCA),new Color(0x334568),new Color(0x39DEFF),new Color(0x071426));
+    private static final Palette CYBER_LIGHT=new Palette(false,new Color(0xEFF1FC),new Color(0xFBFCFF),new Color(0x192343),new Color(0x5C6785),new Color(0xCED6F0),new Color(0x6940D8),Color.WHITE);
+    static String style(){return style;}
+    static boolean cyber(){return "cyber".equals(style);}
+    static int radius(int rounded){return "minimal".equals(style)?6:cyber()?10:rounded;}
+    static void configure(String theme,String componentStyle){style=componentStyle;set(theme);}
     private static boolean keyboardFocus;
     static {
         Toolkit.getDefaultToolkit().addAWTEventListener(event->{
@@ -27,7 +34,7 @@ final class UiTheme {
     }
     static boolean showFocus(Component component){return keyboardFocus&&component.hasFocus();}
     static Palette p(){return current;}
-    static boolean set(String mode){Palette next="dark".equals(mode)||("system".equals(mode)&&systemDark())?DARK:LIGHT;boolean changed=current!=next;current=next;return changed;}
+    static boolean set(String value){mode=value;boolean dark="dark".equals(mode)||("system".equals(mode)&&systemDark());Palette next=cyber()?(dark?CYBER_DARK:CYBER_LIGHT):(dark?DARK:LIGHT);boolean changed=current!=next;current=next;return changed;}
     static boolean systemDark(){
         try{return Advapi32Util.registryGetIntValue(WinReg.HKEY_CURRENT_USER,"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize","AppsUseLightTheme")==0;}
         catch(Throwable ignored){return false;}
@@ -43,6 +50,8 @@ final class UiTheme {
         if(c instanceof JLabel l)l.setForeground(Boolean.TRUE.equals(l.getClientProperty("muted"))?p().muted():p().text());
         if(c instanceof JScrollPane s){s.getViewport().setBackground(p().background());s.setBackground(p().background());}
         if(c instanceof JComboBox<?> box){box.setBackground(p().surface());box.setForeground(p().text());}
+        if(c instanceof JList<?> list){list.setBackground(p().surface());list.setForeground(p().text());list.setSelectionBackground(p().line());list.setSelectionForeground(p().text());}
+        if(c instanceof JTable table){table.setBackground(p().surface());table.setForeground(p().text());table.setGridColor(p().line());table.setSelectionBackground(p().line());table.setSelectionForeground(p().text());}
         if(c instanceof JCheckBox b){b.setForeground(p().text());b.setBackground(p().surface());}
         if(c instanceof JSlider s){s.setForeground(p().accent());s.setBackground(p().surface());}
         if(c instanceof Container parent)for(Component child:parent.getComponents())refresh(child);
@@ -64,7 +73,7 @@ final class UiTheme {
     });}
     static final class Toggle extends JCheckBox {
         Toggle(String text,boolean selected){super(text,selected);setOpaque(false);setFont(font(12,false));setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));setPreferredSize(new Dimension(240,28));}
-        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setFont(getFont());g.setColor(isEnabled()?p().text():p().muted());FontMetrics metrics=g.getFontMetrics();g.drawString(getText(),0,(getHeight()-metrics.getHeight())/2+metrics.getAscent());int x=getWidth()-36,y=(getHeight()-20)/2;g.setColor(isEnabled()&&isSelected()?p().accent():p().line());g.fillRoundRect(x,y,36,20,20,20);g.setColor(isEnabled()&&isSelected()?p().accentText():p().muted());g.fillOval(x+(isSelected()?19:3),y+3,14,14);if(UiTheme.showFocus(this)){g.setColor(p().accent());g.drawRoundRect(x-2,y-2,40,24,24,24);}g.dispose();}
+        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setFont(getFont());g.setColor(isEnabled()?p().text():p().muted());FontMetrics metrics=g.getFontMetrics();g.drawString(getText(),0,(getHeight()-metrics.getHeight())/2+metrics.getAscent());int x=getWidth()-36,y=(getHeight()-20)/2;g.setColor(isEnabled()&&isSelected()?p().accent():p().line());if(cyber()&&isEnabled()&&isSelected())g.setPaint(new GradientPaint(x,y,new Color(0xA13DEC),x+36,y,new Color(0x16BADC)));g.fillRoundRect(x,y,36,20,radius(20),radius(20));g.setColor(isEnabled()&&isSelected()?p().accentText():p().muted());g.fillOval(x+(isSelected()?19:3),y+3,14,14);if(UiTheme.showFocus(this)){g.setColor(p().accent());g.drawRoundRect(x-2,y-2,40,24,24,24);}g.dispose();}
     }
     static void combo(JComboBox<?> box){
         box.setFont(font(13,false));box.setBackground(p().surface());box.setForeground(p().text());box.setFocusable(false);
@@ -73,7 +82,7 @@ final class UiTheme {
             JLabel l=label(value==null?"":value.toString(),13,false);l.setBorder(new EmptyBorder(9,12,9,12));l.setOpaque(true);
             l.setBackground(selected&&index>=0?p().accent():p().surface());l.setForeground(selected&&index>=0?p().accentText():p().text());return l;
         });
-        box.setBorder(new AbstractBorder(){@Override public Insets getBorderInsets(Component c){return new Insets(2,3,2,3);}@Override public void paintBorder(Component c,Graphics g,int x,int y,int w,int h){Graphics2D q=(Graphics2D)g.create();quality(q);q.setColor(p().line());q.drawRoundRect(x,y,w-1,h-1,12,12);q.dispose();}});
+        box.setBorder(new AbstractBorder(){@Override public Insets getBorderInsets(Component c){return new Insets(2,3,2,3);}@Override public void paintBorder(Component c,Graphics g,int x,int y,int w,int h){Graphics2D q=(Graphics2D)g.create();quality(q);q.setColor(cyber()?alpha(p().accent(),130):p().line());q.drawRoundRect(x,y,w-1,h-1,radius(12),radius(12));q.dispose();}});
     }
     enum Tone{PLAIN,SURFACE,PRIMARY,NAV}
     /** Paint every pixel ourselves: Windows' native progress painter ignores dark theme colors. */
@@ -96,14 +105,21 @@ final class UiTheme {
             Graphics2D g=(Graphics2D)graphics.create();quality(g);Palette p=p();
             boolean hover=getModel().isRollover()&&isEnabled();
             Color bg=tone==Tone.PRIMARY?p.accent():p.surface();
-            if(tone!=Tone.PLAIN||hover||selected){if(tone==Tone.NAV){g.setColor(selected?p.surface():hover?alpha(p.surface(),130):new Color(0,0,0,0));}else g.setColor(alpha(bg,isEnabled()?(tone==Tone.PRIMARY?255:hover?245:232):110));g.fillRoundRect(0,0,getWidth(),getHeight(),tone==Tone.PRIMARY?28:tone==Tone.NAV?20:12,tone==Tone.PRIMARY?28:tone==Tone.NAV?20:12);}
-            if(tone==Tone.SURFACE){g.setColor(p.line());g.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);}
+            int arc=radius(tone==Tone.PRIMARY?28:tone==Tone.NAV?20:12);
+            if(cyber()&&isEnabled()&&(tone==Tone.PRIMARY||selected||hover)){
+                for(int i=4;i>0;i--){g.setColor(alpha(p.accent(),12+i*3));g.drawRoundRect(i,i,getWidth()-1-i*2,getHeight()-1-i*2,arc,arc);}
+            }
+            if(tone!=Tone.PLAIN||hover||selected){if(tone==Tone.NAV){g.setColor(selected?p.surface():hover?alpha(p.surface(),130):new Color(0,0,0,0));}else g.setColor(alpha(bg,isEnabled()?(tone==Tone.PRIMARY?255:hover?245:232):110));
+                if(cyber()&&tone==Tone.PRIMARY&&isEnabled())g.setPaint(new GradientPaint(0,0,p.dark()?new Color(0x733DE0):new Color(0x7738D0),getWidth(),getHeight(),p.dark()?new Color(0x087EAD):new Color(0x225AC7)));
+                g.fillRoundRect(3,3,getWidth()-6,getHeight()-6,arc,arc);}
+            if(tone==Tone.SURFACE||cyber()&&(tone==Tone.PRIMARY||selected||hover)){g.setPaint(cyber()?new GradientPaint(0,0,new Color(0xE655FF),getWidth(),getHeight(),new Color(0x36DEFF)):p.line());g.drawRoundRect(3,3,getWidth()-7,getHeight()-7,arc,arc);}
             Color fg=tone==Tone.PRIMARY?p.accentText():selected?p.accent():p.text();if(!isEnabled())fg=alpha(fg,110);
+            if(cyber()&&tone==Tone.PRIMARY&&isEnabled())fg=Color.WHITE;
             g.setFont(getFont());g.setColor(fg);FontMetrics fm=g.getFontMetrics();int width=fm.stringWidth(getText())+(symbol.isBlank()?0:getText().isBlank()?18:28),x=(getWidth()-width)/2;
             if(!symbol.isBlank()){icon(g,symbol,x,(getHeight()-18)/2,18);x+=getText().isBlank()?18:28;}
             g.drawString(getText(),x,(getHeight()-fm.getHeight())/2+fm.getAscent());
             if(selected&&tone==Tone.PLAIN){g.setColor(p.accent());g.fillRoundRect(12,getHeight()-3,getWidth()-24,2,2,2);}
-            if(UiTheme.showFocus(this)){g.setColor(p.accent());g.drawRoundRect(2,2,getWidth()-5,getHeight()-5,12,12);}g.dispose();
+            if(UiTheme.showFocus(this)){g.setColor(p.accent());g.drawRoundRect(1,1,getWidth()-3,getHeight()-3,arc,arc);}g.dispose();
         }
     }
     static final class PowerButton extends JButton {
@@ -113,7 +129,7 @@ final class UiTheme {
     static class Surface extends JPanel {
         final int radius;boolean background;int transparency;
         Surface(LayoutManager layout,int radius){super(layout);this.radius=radius;setOpaque(false);}
-        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setComposite(AlphaComposite.SrcOver.derive(1-Math.max(0,Math.min(100,transparency))/100f));g.setColor(background?p().background():alpha(p().surface(),244));g.fillRoundRect(0,0,getWidth(),getHeight(),radius,radius);if(!background){g.setColor(alpha(p().line(),210));g.drawRoundRect(0,0,getWidth()-1,getHeight()-1,radius,radius);}g.dispose();super.paintComponent(graphics);}
+        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setComposite(AlphaComposite.SrcOver.derive(1-Math.max(0,Math.min(100,transparency))/100f));int arc=radius==0?0:UiTheme.radius(radius);g.setColor(background?p().background():alpha(p().surface(),244));if(cyber()&&!background)g.setPaint(new GradientPaint(0,0,p().surface(),getWidth(),getHeight(),p().dark()?new Color(0x17152E):new Color(0xEEF3FE)));g.fillRoundRect(0,0,getWidth(),getHeight(),arc,arc);if(!background){g.setPaint(cyber()?new GradientPaint(0,0,alpha(new Color(0xDB49FF),120),getWidth(),getHeight(),alpha(new Color(0x26DAF9),140)):alpha(p().line(),210));g.drawRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);}g.dispose();super.paintComponent(graphics);}
     }
     /** Shared 24-unit outline system: rounded ends, consistent optical size and real gear teeth. */
     static void icon(Graphics2D original,String name,int x,int y,int size){

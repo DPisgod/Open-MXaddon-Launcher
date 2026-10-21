@@ -42,7 +42,7 @@ $inspector = Join-Path $OutputDirectory 'inspector\mx-inspect.exe'
 # Explicit allowlist: never include accounts, device credentials, games or wallpapers.
 Copy-Item -LiteralPath $LauncherExe -Destination (Join-Path $payloadDirectory 'OML启动器.exe') -Force
 Copy-Item -LiteralPath $ReadmeFile -Destination (Join-Path $payloadDirectory '使用说明.txt') -Force
-# Use the same OML monogram for setup, installed shortcuts and the launcher.
+# Use the same neon OML badge for setup, installed shortcuts and the launcher.
 Copy-Item -LiteralPath $launcherIcon -Destination (Join-Path $installerRoot 'assets\OML.ico') -Force
 Copy-Item -LiteralPath $launcherIconSvg -Destination (Join-Path $installerRoot 'assets\OML.svg') -Force
 $iconHash = (Get-FileHash -LiteralPath $launcherIcon -Algorithm SHA256).Hash.ToLowerInvariant()

@@ -13,7 +13,7 @@ public final class AppearanceControlsTest {
     static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
     static BufferedImage render(Component component){BufferedImage image=new BufferedImage(component.getWidth(),component.getHeight(),BufferedImage.TYPE_INT_RGB);Graphics2D g=image.createGraphics();component.paint(g);g.dispose();return image;}
     static int distance(int a,int b){return Math.abs((a>>16&255)-(b>>16&255))+Math.abs((a>>8&255)-(b>>8&255))+Math.abs((a&255)-(b&255));}
-    static void apply(LauncherFrame frame,Appearance value)throws Exception{Method method=LauncherFrame.class.getDeclaredMethod("applyAppearance",Appearance.class);method.setAccessible(true);check((boolean)method.invoke(frame,value),"apply failed");}
+    static void apply(LauncherFrame frame,Appearance value)throws Exception{Method method=LauncherFrame.class.getDeclaredMethod("applyStyle",Appearance.class);method.setAccessible(true);check((boolean)method.invoke(frame,value),"apply failed");}
     public static void main(String[] args)throws Exception{
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());Path home=Files.createTempDirectory("mx-transparency-controls-"),out=Path.of(args[0]);Files.createDirectories(out);LauncherPaths.override(home);
         check(Appearance.load(home).uiTransparency==0,"old installations must retain solid panels");
@@ -39,9 +39,9 @@ public final class AppearanceControlsTest {
                     check(distance(header[0],header[2])>50&&distance(dock[0],dock[2])>50,"opacity control has no visual effect");
                     check(distance(header[1],header[0])>20&&distance(header[1],header[2])>20,"50 percent did not blend");
                 }
-                frame.showAppearance();frame.setSize(1000,740);frame.validate();JSlider opacity=(JSlider)AccountUiBehaviorTest.findNamed(frame,"uiTransparency");opacity.setValue(37);
-                check(Appearance.load(home).uiTransparency==100,"preview unexpectedly saved");AccountBehaviorTest.findButton(frame,"应用壁纸").doClick();check(Appearance.load(home).uiTransparency==37,"apply did not persist");
-                Component apply=AccountBehaviorTest.findButton(frame,"应用壁纸");ImageIO.write(render(frame.getContentPane()),"png",out.resolve("wallpapers-minimum-size.png").toFile());check(apply.getHeight()==44&&opacity.getHeight()>=14,"minimum layout clipped controls: apply="+apply.getSize()+" opacity="+opacity.getSize());
+                frame.showStyles();frame.setSize(1000,740);frame.validate();JSlider opacity=(JSlider)AccountUiBehaviorTest.findNamed(frame,"uiTransparency");opacity.setValue(37);
+                check(Appearance.load(home).uiTransparency==37,"style slider did not persist");
+                Component apply=AccountBehaviorTest.findButton(frame,"返回主页");ImageIO.write(render(frame.getContentPane()),"png",out.resolve("wallpapers-minimum-size.png").toFile());check(apply.getHeight()>=30&&opacity.getHeight()>=14,"minimum layout clipped controls: apply="+apply.getSize()+" opacity="+opacity.getSize());
                 for(String theme:new String[]{"light","dark"}){
                     UiTheme.set(theme);MemoryPanel memory=new MemoryPanel(false,new MemoryAllocation.Choice("custom",4096),Settings::new);memory.setSize(610,180);UiTheme.refresh(memory);layout(memory);
                     JSlider memorySlider=(JSlider)AccountUiBehaviorTest.findNamed(memory,"customMemorySlider");JLabel value=(JLabel)AccountUiBehaviorTest.findNamed(memory,"customMemoryValue");

@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared OML monogram for Open-MXaddon-Launcher and the operating system. */
+/** Shared neon OML badge for Open-MXaddon-Launcher and the operating system. */
 final class ApplicationIcon {
     private static final List<Image> IMAGES = load();
 

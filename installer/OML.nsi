@@ -221,18 +221,18 @@ Section "Open-MXaddon-Launcher" Main
     Abort
   ${EndIf}
   CreateDirectory "$SMPROGRAMS\Open-MXaddon-Launcher"
-  ; Use the new OML monogram group at ordinal 2 to avoid legacy icon caches.
+  ; Use the neon badge group at ordinal 3 to avoid legacy icon caches.
   Delete "$SMPROGRAMS\OML\OML.lnk"
   Delete "$SMPROGRAMS\OML\卸载 OML.lnk"
   RMDir "$SMPROGRAMS\OML"
   Delete "$DESKTOP\OML.lnk"
   Delete "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk"
-  CreateShortCut "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 2
+  CreateShortCut "$SMPROGRAMS\Open-MXaddon-Launcher\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 3
   CreateShortCut "$SMPROGRAMS\Open-MXaddon-Launcher\卸载 Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_UNINSTALLER}" "" "$INSTDIR\${APP_UNINSTALLER}" 0
   ${If} $DesktopChoice == ${BST_CHECKED}
     Delete "$DESKTOP\OML.lnk"
     Delete "$DESKTOP\Open-MXaddon-Launcher.lnk"
-    CreateShortCut "$DESKTOP\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 2
+    CreateShortCut "$DESKTOP\Open-MXaddon-Launcher.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 3
   ${EndIf}
   WriteRegStr HKCU "${PRODUCT_KEY}" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${PRODUCT_KEY}" "LastInstallMode" "$ScanState"
@@ -241,7 +241,7 @@ Section "Open-MXaddon-Launcher" Main
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Open-MXaddon-Launcher"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" '$\"$INSTDIR\${APP_EXE}$\",2'
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" '$\"$INSTDIR\${APP_EXE}$\",3'
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '$\"$INSTDIR\${APP_UNINSTALLER}$\"'
   WriteRegStr HKCU "${UNINSTALL_KEY}" "QuietUninstallString" '$\"$INSTDIR\${APP_UNINSTALLER}$\" /S'
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1

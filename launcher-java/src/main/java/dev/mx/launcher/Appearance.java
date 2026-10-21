@@ -6,13 +6,13 @@ import java.util.Properties;
 
 /** Personal appearance settings, stored separately from authorization and game settings. */
 final class Appearance {
-    String theme="system", wallpaper="", fit="cover";
+    String theme="system", buttonStyle="rounded", wallpaper="", fit="cover";
     int blur=0, mask=12, uiTransparency=0;
     boolean loop=true, muted=true, pauseWithGame=true;
 
     Appearance copy() {
         Appearance a=new Appearance();
-        a.theme=theme;a.wallpaper=wallpaper;a.fit=fit;a.blur=blur;a.mask=mask;a.uiTransparency=uiTransparency;
+        a.theme=theme;a.buttonStyle=buttonStyle;a.wallpaper=wallpaper;a.fit=fit;a.blur=blur;a.mask=mask;a.uiTransparency=uiTransparency;
         a.loop=loop;a.muted=muted;a.pauseWithGame=pauseWithGame;return a;
     }
     static Appearance load(Path home) {
@@ -20,6 +20,7 @@ final class Appearance {
         try(InputStream in=Files.newInputStream(LauncherPaths.dataFile(home,"appearance.properties"))){p.load(in);}
         catch(IOException ignored){return a;}
         a.theme=oneOf(p.getProperty("theme"),"system","light","dark");
+        a.buttonStyle=oneOf(p.getProperty("buttonStyle"),"rounded","minimal","cyber");
         a.fit=oneOf(p.getProperty("fit"),"cover","contain","stretch");
         a.wallpaper=p.getProperty("wallpaper","");
         a.blur=number(p.getProperty("blur"),0,0,100);
@@ -32,6 +33,7 @@ final class Appearance {
     void save(Path home) throws IOException {
         Path file=LauncherPaths.dataFile(home,"appearance.properties");Properties p=new Properties();
         p.setProperty("theme",theme);p.setProperty("wallpaper",wallpaper);p.setProperty("fit",fit);
+        p.setProperty("buttonStyle",buttonStyle);
         p.setProperty("blur",Integer.toString(blur));p.setProperty("mask",Integer.toString(mask));
         p.setProperty("uiTransparency",Integer.toString(uiTransparency));
         p.setProperty("loop",Boolean.toString(loop));p.setProperty("muted",Boolean.toString(muted));

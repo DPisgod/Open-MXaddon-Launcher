@@ -26,20 +26,20 @@ public final class LauncherFrame extends JFrame {
     private final CardLayout pages=new CardLayout();
     private final JPanel pageHost=UiTheme.transparent(pages);
     private AppearancePanel appearancePanel;
+    private StylePanel stylePanel;
+    private boolean styleVisible;
     private DownloadCenterPanel downloadCenter;
     private boolean downloadsVisible;
     private final boolean network;
     private final UiTheme.Button homeTab=new UiTheme.Button("主页","",UiTheme.Tone.NAV);
-    private final UiTheme.Button appearanceTab=new UiTheme.Button("壁纸","",UiTheme.Tone.NAV);
+    private final UiTheme.Button appearanceTab=new UiTheme.Button("风格","",UiTheme.Tone.NAV);
     private final UiTheme.Button downloadsTab=new UiTheme.Button("下载","",UiTheme.Tone.NAV);
     private final UiTheme.Button launchBtn=new UiTheme.Button("启动游戏","play",UiTheme.Tone.PRIMARY);
     private final UiTheme.PowerButton stopBtn=new UiTheme.PowerButton();
     private final GameProcesses games=new GameProcesses();
     private int lastGameCount;
     private final UiTheme.Button settingsBtn=new UiTheme.Button("","settings",UiTheme.Tone.PLAIN);
-    private final UiTheme.Button lightBtn=new UiTheme.Button("","sun",UiTheme.Tone.NAV);
-    private final UiTheme.Button systemBtn=new UiTheme.Button("","system",UiTheme.Tone.NAV);
-    private final UiTheme.Button darkBtn=new UiTheme.Button("","moon",UiTheme.Tone.NAV);
+    private final UiTheme.Button wallpaperBtn=new UiTheme.Button("壁纸","image",UiTheme.Tone.NAV);
     private final JComboBox<String> versionBox=new JComboBox<>();
     private static final String ADD_VERSION="添加版本…",VERSION_SETTINGS="当前版本设置…",DELETE_VERSION="删除当前版本…",NO_VERSION="未安装游戏版本";
     private boolean updatingVersions;
@@ -55,7 +55,7 @@ public final class LauncherFrame extends JFrame {
     public LauncherFrame(){this(true);}
     /** UI harness never touches the file system outside its own home; launch stays available without authorization. */
     LauncherFrame(boolean initialize){
-        super("");network=initialize;WindowChrome.undecorate(this);UiTheme.set(appearance.theme);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        super("");network=initialize;WindowChrome.undecorate(this);UiTheme.configure(appearance.theme,appearance.buttonStyle);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(1000,740));setSize(1140,810);setLocationRelativeTo(null);
         buildUi();Session saved=SessionStore.load(home);List<Session> available=accounts.available(saved);session=saved!=null?saved:available.isEmpty()?null:available.get(0);accountCleared=session==null;if(session!=null)SessionStore.save(home,session);applySession();avatar.setImage(session==null?null:SkinFetcher.cached(session,home));wallpaper.onChange(backdrop::repaint);wallpaper.onError(error->statusLabel.setText("壁纸读取失败，请在外观中更换"));wallpaper.select(library.find(appearance.wallpaper),appearance);
         addWindowListener(new WindowAdapter(){@Override public void windowOpened(WindowEvent e){refreshTheme();}@Override public void windowIconified(WindowEvent e){syncPlayback();}@Override public void windowDeiconified(WindowEvent e){syncPlayback();}@Override public void windowClosed(WindowEvent e){disposeResources();}});
@@ -69,10 +69,10 @@ public final class LauncherFrame extends JFrame {
         JComponent mark=new JComponent(){@Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();UiTheme.quality(g);g.drawImage(ApplicationIcon.brand(),0,0,30,30,this);g.dispose();}};mark.setName("brandMark");mark.setPreferredSize(new Dimension(30,30));brand.add(mark);
         JLabel logo=UiTheme.label("Open-MXaddon-Launcher",16,true);logo.setFont(new Font("Segoe UI",Font.BOLD,16));brand.add(logo);brand.setPreferredSize(new Dimension(295,44));header.add(brand,BorderLayout.WEST);
         JPanel navigation=UiTheme.transparent(new FlowLayout(FlowLayout.CENTER,0,0));UiTheme.Surface navPill=new UiTheme.Surface(new FlowLayout(FlowLayout.CENTER,2,3),24);navPill.background=true;homeTab.setPreferredSize(new Dimension(82,36));appearanceTab.setPreferredSize(new Dimension(82,36));navPill.add(homeTab);navPill.add(appearanceTab);navigation.add(navPill);header.add(navigation,BorderLayout.CENTER);
-        JPanel right=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,10,0));UiTheme.Surface themes=new UiTheme.Surface(new FlowLayout(FlowLayout.CENTER,1,3),22);themes.background=true;themes.add(lightBtn);themes.add(systemBtn);themes.add(darkBtn);right.add(themes);right.add(settingsBtn);right.add(WindowChrome.controls(this,true));settingsBtn.setToolTipText("游戏设置");header.add(right,BorderLayout.EAST);root.add(header,BorderLayout.NORTH);WindowChrome.drag(this,header);
-        homeTab.addActionListener(e->showHome());appearanceTab.addActionListener(e->showAppearance());settingsBtn.addActionListener(e->openSettings());
+        JPanel right=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,10,0));UiTheme.Surface themes=new UiTheme.Surface(new FlowLayout(FlowLayout.CENTER,1,3),22);themes.background=true;themes.add(wallpaperBtn);right.add(themes);right.add(settingsBtn);right.add(WindowChrome.controls(this,true));settingsBtn.setToolTipText("游戏设置");header.add(right,BorderLayout.EAST);root.add(header,BorderLayout.NORTH);WindowChrome.drag(this,header);
+        homeTab.addActionListener(e->showHome());appearanceTab.addActionListener(e->showStyles());settingsBtn.addActionListener(e->openSettings());
         ((Container)homeTab.getParent()).add(downloadsTab);downloadsTab.setPreferredSize(new Dimension(82,36));downloadsTab.addActionListener(e->openDownloads());
-        lightBtn.setToolTipText("浅色模式");systemBtn.setToolTipText("跟随系统");darkBtn.setToolTipText("深色模式");lightBtn.addActionListener(e->setTheme("light"));systemBtn.addActionListener(e->setTheme("system"));darkBtn.addActionListener(e->setTheme("dark"));
+        wallpaperBtn.setToolTipText("选择壁纸与播放设置");wallpaperBtn.setName("wallpaperMenu");wallpaperBtn.addActionListener(e->showAppearance());
 
         JPanel bottom=UiTheme.transparent(new GridBagLayout());bottom.setBorder(new EmptyBorder(0,24,24,24));
         GridBagConstraints b=new GridBagConstraints();b.gridx=0;b.gridy=0;b.anchor=GridBagConstraints.EAST;b.insets=new Insets(0,0,8,74);stopBtn.setEnabled(false);stopBtn.setToolTipText("没有运行中的游戏");stopBtn.addActionListener(e->stopGames());bottom.add(stopBtn,b);
@@ -125,7 +125,7 @@ public final class LauncherFrame extends JFrame {
     void openDownloads(){
         if(busy||games.running()){showError("请先退出游戏","退出游戏后可下载并安装资源。");return;}
         if(downloadCenter==null){downloadCenter=new DownloadCenterPanel(this,gameRoot,selectedVersion,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);},network);pageHost.add(downloadCenter,"downloads");}
-        downloadCenter.selectInstance(selectedVersion);appearanceVisible=false;downloadsVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"downloads");syncPlayback();refreshTheme();
+        downloadCenter.selectInstance(selectedVersion);appearanceVisible=false;styleVisible=false;downloadsVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"downloads");syncPlayback();refreshTheme();
     }
     private void versionSettings(){if(busy)return;if(games.running()){showError("请先退出游戏","所有客户端退出后可修改此版本的 Mod。");return;}if(selectedVersion.isEmpty()){addVersion();return;}try{new VersionSettingsDialog(this,gameRoot,selectedVersion).setVisible(true);}catch(Exception e){showError("无法打开版本设置",root(e));}}
     private void updateLoader(){
@@ -200,24 +200,36 @@ public final class LauncherFrame extends JFrame {
     }
     private void refreshTheme(){
         MenuSelectionManager.defaultManager().clearSelectedPath();
-        homeTab.selected=!appearanceVisible&&!downloadsVisible;appearanceTab.selected=appearanceVisible;downloadsTab.selected=downloadsVisible;lightBtn.selected="light".equals(appearance.theme);systemBtn.selected="system".equals(appearance.theme);darkBtn.selected="dark".equals(appearance.theme);UiTheme.refresh(getContentPane());getContentPane().revalidate();getContentPane().repaint();
+        homeTab.selected=!appearanceVisible&&!downloadsVisible&&!styleVisible;appearanceTab.selected=styleVisible;wallpaperBtn.selected=appearanceVisible;downloadsTab.selected=downloadsVisible;UiTheme.refresh(getContentPane());getContentPane().revalidate();getContentPane().repaint();
         try{if(isDisplayable()){com.sun.jna.platform.win32.WinDef.HWND hwnd=new com.sun.jna.platform.win32.WinDef.HWND(com.sun.jna.Native.getComponentPointer(this));int[] dark={UiTheme.p().dark()?1:0};Dwm.INSTANCE.DwmSetWindowAttribute(hwnd,20,dark,4);}}catch(Throwable ignored){}
     }
     private void updateTransparency(){for(UiTheme.Surface surface:wallpaperSurfaces){surface.transparency=appearance.uiTransparency;surface.repaint();}}
     private interface Dwm extends com.sun.jna.Library{Dwm INSTANCE=com.sun.jna.Native.load("dwmapi",Dwm.class);int DwmSetWindowAttribute(com.sun.jna.platform.win32.WinDef.HWND hwnd,int attribute,int[] value,int size);}
-    private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"home");syncPlayback();refreshTheme();}
+    private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;styleVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"home");syncPlayback();refreshTheme();}
     void showAppearance(){
-        if(downloadCenter!=null&&downloadCenter.busy())return;downloadsVisible=false;
+        if(downloadCenter!=null&&downloadCenter.busy())return;downloadsVisible=false;styleVisible=false;
         if(appearancePanel!=null){appearancePanel.close();pageHost.remove(appearancePanel);}
         appearancePanel=new AppearancePanel(library,appearance,this::applyAppearance,this::showHome);pageHost.add(appearancePanel,"appearance");appearanceVisible=true;pages.show(pageHost,"appearance");appearancePanel.setActive((getExtendedState()&ICONIFIED)==0);syncPlayback();refreshTheme();
     }
     private boolean applyAppearance(Appearance value){
-        value.theme=appearance.theme;try{value.save(home);}catch(Exception e){showError("壁纸未保存","无法写入外观设置，请检查启动器目录权限。");return false;}
+        value.theme=appearance.theme;value.buttonStyle=appearance.buttonStyle;value.uiTransparency=appearance.uiTransparency;try{value.save(home);}catch(Exception e){showError("壁纸未保存","无法写入外观设置，请检查启动器目录权限。");return false;}
         appearance=value;backdrop.options(value);updateTransparency();wallpaper.select(library.find(value.wallpaper),value);syncPlayback();return true;
+    }
+    void showStyles(){
+        if(downloadCenter!=null&&downloadCenter.busy())return;
+        if(stylePanel!=null)pageHost.remove(stylePanel);
+        stylePanel=new StylePanel(appearance,this::applyStyle,this::showHome);pageHost.add(stylePanel,"styles");
+        appearanceVisible=false;downloadsVisible=false;styleVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);
+        pages.show(pageHost,"styles");syncPlayback();refreshTheme();
+    }
+    private boolean applyStyle(Appearance value){
+        Appearance next=appearance.copy();next.theme=value.theme;next.buttonStyle=value.buttonStyle;next.uiTransparency=value.uiTransparency;
+        try{next.save(home);}catch(Exception e){return false;}
+        appearance=next;UiTheme.configure(next.theme,next.buttonStyle);backdrop.options(next);updateTransparency();refreshTheme();return true;
     }
     private void syncPlayback(){
         boolean minimized=(getExtendedState()&ICONIFIED)!=0;boolean game=games.running();
-        wallpaper.setPaused(minimized||appearanceVisible||downloadsVisible||(appearance.pauseWithGame&&(game||busy)));
+        wallpaper.setPaused(minimized||appearanceVisible||styleVisible||downloadsVisible||(appearance.pauseWithGame&&(game||busy)));
         if(appearancePanel!=null)appearancePanel.setActive(appearanceVisible&&!minimized&&!(appearance.pauseWithGame&&game));
     }
     private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();if(systemThemeTimer!=null)systemThemeTimer.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();}
@@ -225,6 +237,7 @@ public final class LauncherFrame extends JFrame {
     private void showError(String title,String body){WindowChrome.prompt(this,title,body,false);}
     private static String root(Throwable e){while(e.getCause()!=null&&e.getCause()!=e)e=e.getCause();return e.getMessage()==null?"操作未完成，请重试。":e.getMessage();}
     Path homeDir(){return home;}String debugStatusText(){return statusLabel.getText();}String debugVersionText(){Object selected=versionBox.getSelectedItem();return selected==null?"":selected.toString();}
+    StylePanel stylePanel(){return stylePanel;}
     AppearancePanel appearancePanel(){return appearancePanel;}
     DownloadCenterPanel downloadCenter(){return downloadCenter;}
     void previewTheme(String theme){setTheme(theme);}

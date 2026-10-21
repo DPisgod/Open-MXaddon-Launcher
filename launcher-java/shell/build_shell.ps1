@@ -120,10 +120,11 @@ $rc = "// 自动生成 —— 内嵌启动器运行时（不含 mod）`r`n"
 $rc += "#include <windows.h>`r`n"
 $rc += "#include `"payload_ids.h`"`r`n"
 $rc += "1 ICON `"../src/main/resources/icons/launcher.ico`"`r`n"
-# Three matching groups preserve old indices and provide a new shortcut cache key. NSIS
-# truncates negative icon indices, so use the supported positive ordinal 2.
+# Four matching groups preserve old indices and provide a new shortcut cache key. NSIS
+# truncates negative icon indices, so use the supported positive ordinal 3.
 $rc += "2 ICON `"../src/main/resources/icons/launcher.ico`"`r`n"
 $rc += "3 ICON `"../src/main/resources/icons/launcher.ico`"`r`n"
+$rc += "4 ICON `"../src/main/resources/icons/launcher.ico`"`r`n"
 $rc += "IDR_PAYLOAD_ZIP RCDATA `"payload.zip`"`r`n"
 $rc += "1 VERSIONINFO`r`n"
 $rc += "FILEVERSION $numericVersion`r`n"

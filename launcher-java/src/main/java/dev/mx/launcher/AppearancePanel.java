@@ -57,9 +57,8 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
         addRow(controls,g,1,"显示方式",fit);
         JSlider blur=new JSlider(0,100,draft.blur),mask=new JSlider(0,85,draft.mask);UiTheme.slider(blur);UiTheme.slider(mask);
         addRow(controls,g,2,"模糊度",slider(blur));addRow(controls,g,3,"遮罩强度",slider(mask));
-        JSlider transparency=new JSlider(0,100,draft.uiTransparency);transparency.setName("uiTransparency");transparency.setToolTipText("0% 为不透明，100% 为完全透明；仅调整顶栏和启动栏背景");UiTheme.slider(transparency);addRow(controls,g,4,"UI 透明度",slider(transparency));
         JCheckBox loop=check("循环播放",draft.loop),mute=check("静音播放",draft.muted),pause=check("游戏启动后暂停",draft.pauseWithGame);
-        g.gridx=0;g.gridwidth=2;g.gridy=5;g.insets=new Insets(3,0,2,0);controls.add(loop,g);g.gridy=6;controls.add(mute,g);g.gridy=7;controls.add(pause,g);
+        g.gridx=0;g.gridwidth=2;g.gridy=4;g.insets=new Insets(3,0,2,0);controls.add(loop,g);g.gridy=5;controls.add(mute,g);g.gridy=6;controls.add(pause,g);
         r.gridy=1;r.weighty=0;stack.add(controls,r);right.add(stack,BorderLayout.CENTER);
         JPanel applyArea=UiTheme.transparent(new BorderLayout(0,8));applyButton.setPreferredSize(new Dimension(100,44));applyArea.add(applyButton,BorderLayout.CENTER);applyArea.add(UiTheme.muted("预览不会覆盖当前壁纸，点击应用后保存。",10),BorderLayout.SOUTH);right.add(applyArea,BorderLayout.SOUTH);
         c.gridx=1;c.weightx=.42;c.insets=new Insets(0,0,0,0);columns.add(right,c);add(columns,BorderLayout.CENTER);
@@ -67,7 +66,6 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
         importButton.addActionListener(e->chooseFiles());applyButton.addActionListener(e->{message.setText(apply.test(draft.copy())?"已应用壁纸，外观设置已保存。":"保存失败，请检查启动器目录的写入权限。");});
         fit.addActionListener(e->{draft.fit=new String[]{"cover","contain","stretch"}[fit.getSelectedIndex()];preview.options(draft);});
         blur.addChangeListener(e->{draft.blur=blur.getValue();preview.options(draft);});mask.addChangeListener(e->{draft.mask=mask.getValue();preview.options(draft);});
-        transparency.addChangeListener(e->{draft.uiTransparency=transparency.getValue();preview.options(draft);});
         loop.addActionListener(e->{draft.loop=loop.isSelected();restartPreview();});mute.addActionListener(e->{draft.muted=mute.isSelected();restartPreview();});pause.addActionListener(e->draft.pauseWithGame=pause.isSelected());
         playButton.addActionListener(e->{manualPause=!manualPause;previewPlayer.setPaused(!active||manualPause);playButton.setText(manualPause?"继续预览":"暂停预览");});
         previewPlayer.onChange(preview::repaint);previewPlayer.onError(error->message.setText("预览失败："+error));
