@@ -43,7 +43,7 @@ SetCompressorDictSize 32
 Name "OML"
 Caption "OML 安装向导"
 OutFile "${OUTPUT_FILE}"
-InstallDir "D:\OML"
+InstallDir "D:\Open-MXaddon-Launcher"
 InstallDirRegKey HKCU "${PRODUCT_KEY}" "InstallDir"
 BrandingText "OML"
 ShowInstDetails show
@@ -88,7 +88,7 @@ Function .onInit
   ReadRegStr $0 HKCU "${PRODUCT_KEY}" "InstallDir"
   ; NSIS has already applied /D= here; preserve an explicit installation target.
   ${If} $0 == ""
-  ${AndIf} $INSTDIR == "D:\OML"
+  ${AndIf} $INSTDIR == "D:\Open-MXaddon-Launcher"
   ${AndIf} $LegacyInstallDir != ""
     StrCpy $INSTDIR $LegacyInstallDir
   ${EndIf}

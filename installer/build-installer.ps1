@@ -58,7 +58,7 @@ if ([IO.Path]::GetFullPath($outputFile) -ne [IO.Path]::GetFullPath($sourceInstal
 }
 $manifest = [ordered]@{
     version = $Version
-    defaultDirectory = 'D:\OML'
+    defaultDirectory = 'D:\Open-MXaddon-Launcher'
     desktopShortcutOptional = $true
     sourceCommit = (& git -C $repoRoot rev-parse HEAD)
     launcherSha256 = (Get-FileHash -LiteralPath $LauncherExe -Algorithm SHA256).Hash.ToLowerInvariant()
