@@ -62,6 +62,7 @@ public final class SettingsDialog extends JDialog {
         memoryPanel = new MemoryPanel(false,new MemoryAllocation.Choice(st.memoryMode,st.memoryMb),()->Settings.load(home));
         jvmArgsField = new JTextField(st.jvmArgs == null ? "" : st.jvmArgs);
         javaPathField = new JTextField(st.javaPath == null ? "" : st.javaPath);
+        javaPathField.setName("javaPath");javaPathField.setToolTipText("留空为自动选择；也可使用切换 Java 或手动浏览");
         offlineNameField = new JTextField(st.offlineName == null ? "" : st.offlineName);
 
         buildUi();
@@ -122,7 +123,7 @@ public final class SettingsDialog extends JDialog {
         form.add(Box.createVerticalStrut(12));
 
         // --- Java 路径 ---
-        form.add(label("Java 路径（留空则自动查找）"));
+        form.add(label("Java 路径（自动选择或指定版本）"));
         JPanel javaRow = new JPanel(new BorderLayout(6, 0));
         javaRow.setOpaque(false);
         javaPathField.setBackground(UiTheme.p().surface());
@@ -143,8 +144,9 @@ public final class SettingsDialog extends JDialog {
         browse.setCursor(new Cursor(Cursor.HAND_CURSOR));
         browse.setPreferredSize(new Dimension(72, 28));
         browse.addActionListener(e -> pickJava());
-        javaRow.add(browse, BorderLayout.EAST);
-        javaRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        JButton switchJava=new UiTheme.Button("切换 Java","chevron",UiTheme.Tone.SURFACE);switchJava.setName("switchJava");switchJava.addActionListener(e->new JavaSelectionDialog(this,home,gameRoot,javaPathField.getText().trim(),javaPathField::setText,this::pickJava).setVisible(true));
+        JPanel javaActions=new JPanel(new FlowLayout(FlowLayout.RIGHT,4,0));javaActions.setOpaque(false);javaActions.add(switchJava);javaActions.add(browse);javaRow.add(javaActions, BorderLayout.EAST);
+        javaRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         javaRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(javaRow);
         form.add(Box.createVerticalStrut(12));

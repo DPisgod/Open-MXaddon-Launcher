@@ -36,6 +36,8 @@ final class GameJava {
             if(!Files.isRegularFile(Path.of(configured)))throw new IOException("设置中的 Java 路径不存在");return configured;
         }
         Path local=instance.resolve("runtime/bin/javaw.exe");if(Files.isRegularFile(local))return local.toAbsolutePath().toString();
+        var detected=JavaRuntimes.matching(JavaRuntimes.discover(LauncherPaths.home(),LauncherPaths.gameRoot(),""),major);
+        if(detected.isPresent())return detected.get().executable().toString();
         if(major>Runtime.version().feature())throw new IOException("此游戏需要 Java "+major+"，请启用安装时自动下载 Java，或在设置中指定路径");
         if(major<=8&&Runtime.version().feature()>8)throw new IOException("此历史版本需要 Java 8，请重新安装并启用自动下载 Java，或在设置中指定 Java 8");
         return GameLauncher.javaBinary();
