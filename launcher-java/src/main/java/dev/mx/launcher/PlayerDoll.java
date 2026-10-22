@@ -21,6 +21,7 @@ final class PlayerDoll implements AutoCloseable {
     private final PlayerDollView view=new PlayerDollView();
     private final javax.swing.Timer ticker=new UiMotion.FrameTimer(16,e->tick());
     private double targetAngle;
+    private int previewScale=-1;
     private long lastFrame;
     private SwingWorker<PlayerTextures.Profile,Void> lookup;
     private String sourceId="",notice="左键互动 · 拖动移动 · 右键设置";
@@ -45,17 +46,20 @@ final class PlayerDoll implements AutoCloseable {
     private void syncAnimation(){if(started&&!closed&&!paused&&options.enabled&&UiMotion.visible(view)){ticker.start();}else{ticker.stop();lastFrame=0;}}
     void layoutView(){
         if(stage==null)return;
-        Dimension size=new Dimension(Math.min(220*options.scale/100,Math.max(0,stage.getWidth()-24)),Math.min(300*options.scale/100,Math.max(0,stage.getHeight()-24)));
+        int scale=previewScale<0?options.scale:previewScale;
+        Dimension size=new Dimension(Math.min(220*scale/100,Math.max(0,stage.getWidth()-24)),Math.min(300*scale/100,Math.max(0,stage.getHeight()-24)));
         view.setSize(size);view.setLocation(PlayerDollOptions.position(options.x,options.y,size,stage.getSize()));stage.repaint();
     }
+    void previewScale(int scale){previewScale=Math.max(60,Math.min(180,scale));layoutView();}
+    static boolean validPlayer(String player){return player.isBlank()||player.strip().matches("[A-Za-z0-9_]{1,16}")||player.strip().replace("-","").matches("[a-fA-F0-9]{32}");}
     void openSettings(Window parent){if(settings!=null&&settings.isDisplayable()){settings.toFront();return;}settings=new PlayerDollSettingsDialog(parent==null?owner:parent,this);settings.setVisible(true);}
     private String selectedId(){if(options.manual)return options.player.strip();Session account=current.get();if(account!=null&&account.premium)return account.uuid;for(Session saved:accounts.get())if(saved.premium)return saved.uuid;return "";}
     void accountChanged(){if(started&&options.enabled&&!options.manual&&!selectedId().equalsIgnoreCase(sourceId))refresh();}
     boolean apply(PlayerDollOptions next){
-        if(next.manual&&!next.player.strip().matches("[A-Za-z0-9_]{1,16}")&&!next.player.strip().replace("-","").matches("[a-fA-F0-9]{32}")){notice="请输入正版 Java 玩家名或 UUID";updateNotice();return false;}
+        if(next.manual&&!validPlayer(next.player)){notice="请输入正版 Java 玩家名或 UUID";updateNotice();return false;}
         next.scale=Math.max(60,Math.min(180,next.scale));next.player=next.player.strip();next.x=options.x;next.y=options.y;
-        try{next.save(home);}catch(Exception failure){notice="无法保存玩偶设置，请检查目录权限";updateNotice();return false;}
-        boolean wasEnabled=options.enabled;options=next.copy();
+        try{next.save(home);}catch(Exception failure){previewScale=-1;layoutView();notice="无法保存玩偶设置，请检查目录权限";updateNotice();return false;}
+        boolean wasEnabled=options.enabled;options=next.copy();previewScale=-1;
         if(options.enabled)show();else hide();if(wasEnabled!=options.enabled)visibilityChanged.run();return true;
     }
     private void show(){
