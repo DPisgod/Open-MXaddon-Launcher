@@ -11,7 +11,7 @@ public final class DownloadsUiTest {
         Path home=Files.createTempDirectory("mx-download-ui-"),out=Path.of(args[0]);Files.createDirectories(out);LauncherPaths.override(home);Path root=LauncherPaths.gameRoot();
         SwingUtilities.invokeAndWait(()->{
             UiTheme.set("light");
-            for(String theme:new String[]{"light","dark"}){
+            for(String theme:new String[]{"light","dark","cyber","china-red","sakura","purple"}){
                 UiTheme.set(theme);JDialog[] dialogs={new InstallVersionDialog(null,root,id->{},false),new ContentBrowserDialog(null,root,"",id->{},false)};
                 for(JDialog dialog:dialogs){try{dialog.addNotify();dialog.validate();Container content=dialog.getContentPane();BufferedImage image=new BufferedImage(content.getWidth(),content.getHeight(),BufferedImage.TYPE_INT_RGB);Graphics2D graphics=image.createGraphics();content.printAll(graphics);graphics.dispose();ImageIO.write(image,"png",out.resolve((dialog instanceof InstallVersionDialog?"game-installer-":"resources-")+theme+".png").toFile());}catch(Exception failure){throw new RuntimeException(failure);}finally{dialog.dispose();}}
             }
