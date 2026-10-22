@@ -4,45 +4,58 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.nio.file.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-/** Production navigation, component rendering, persistence and independent wallpaper writes. */
+/** Unified name-only presets, legacy migration and independent wallpaper preferences. */
 public final class StyleUiTest {
     private static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
-    private static void click(Container root,String name){((JButton)AccountUiBehaviorTest.findNamed(root,name)).doClick();}
+    private static JComboBox<?> selector(LauncherFrame frame){return (JComboBox<?>)AccountUiBehaviorTest.findNamed(frame.stylePanel(),"appearanceStyle");}
+    private static void checkSimpleMenu(Component component){
+        if(component instanceof JLabel label)check(label.getIcon()==null,"preview image remains");
+        if(component instanceof JButton button){String text=button.getText();check(!Set.of("柔和圆角","简约直角","跟随系统","浅色","深色","霓虹赛博").contains(text),"old card or separate theme button remains");}
+        if(component instanceof Container parent)for(Component child:parent.getComponents())checkSimpleMenu(child);
+    }
     public static void main(String[] args)throws Exception{
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());Path home=Files.createTempDirectory("oml-style-"),out=Path.of(args[0]);Files.createDirectories(out);LauncherPaths.override(home);
-        Appearance initial=new Appearance();initial.mask=27;initial.blur=9;initial.loop=false;initial.save(home);check(Appearance.load(home).buttonStyle.equals("rounded"),"legacy default changed");
-        LauncherFrame[] frame={null};
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());Path home=Files.createTempDirectory("oml-personalization-"),out=Path.of(args[0]);Files.createDirectories(out);LauncherPaths.override(home);
+        Path preferences=LauncherPaths.dataFile(home,"appearance.properties");
+        for(String oldStyle:new String[]{"rounded","minimal","cyber"})for(String theme:new String[]{"light","dark","system"}){
+            Files.writeString(preferences,"buttonStyle="+oldStyle+"\ntheme="+theme+"\nuiTransparency=37\nblur=9\nmask=27\nloop=false\n");
+            Appearance migrated=Appearance.load(home);String expected=oldStyle.equals("cyber")?"cyber":theme.equals("system")?(UiTheme.systemDark()?"dark":"light"):theme;
+            check(migrated.theme.equals(expected),"legacy style migration failed: "+oldStyle+"/"+theme);migrated.save(home);
+            check(!Files.readString(preferences).contains("buttonStyle"),"removed geometry preference still saved");
+            check(migrated.uiTransparency==37&&migrated.mask==27&&migrated.blur==9&&!migrated.loop,"migration changed unrelated settings");
+        }
+        Appearance initial=Appearance.load(home);initial.theme="light";initial.save(home);LauncherFrame[] frame={null};Set<Integer> signatures=new HashSet<>();
         try{
             SwingUtilities.invokeAndWait(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);frame[0].setSize(1000,740);});
-            Set<Integer> signatures=new HashSet<>();
-            for(String style:new String[]{"rounded","minimal","cyber"}){
+            String[] ids={"light","dark","cyber"},names={"浅色","深色","霓虹赛博"};Dimension[] launchSize={null},comboSize={null};
+            for(int i=0;i<ids.length;i++){
+                final int index=i;
                 SwingUtilities.invokeAndWait(()->{
-                    AccountBehaviorTest.findButton(frame[0],"风格").doClick();click(frame[0].stylePanel(),"style-"+style);frame[0].validate();
-                    check(Appearance.load(home).buttonStyle.equals(style),"style not saved");check(UiTheme.style().equals(style),"global components not changed");
-                    if(style.equals("cyber"))check(UiTheme.p().dark(),"cyber preset should start dark");
-                    JButton launch=AccountBehaviorTest.findButton(frame[0],"启动游戏");launch.setSize(150,46);BufferedImage image=AppearanceControlsTest.render(launch);int hash=1;for(int y=0;y<46;y++)for(int x=0;x<150;x++)hash=31*hash+image.getRGB(x,y);signatures.add(hash);
-                    JSlider opacity=(JSlider)AccountUiBehaviorTest.findNamed(frame[0].stylePanel(),"uiTransparency");opacity.setValue(37);check(Appearance.load(home).uiTransparency==37,"transparency not persisted");
-                    Appearance current=Appearance.load(home);check(current.mask==27&&current.blur==9&&!current.loop,"style overwrote wallpaper settings");
-                    check(opacity.getHeight()>=14&&opacity.getWidth()>200,"style controls clipped at minimum size");
-                    for(String mode:new String[]{"light","dark","system"}){click(frame[0].stylePanel(),"theme-"+mode);check(Appearance.load(home).theme.equals(mode),"theme not saved");}
-                    click(frame[0].stylePanel(),"theme-"+(style.equals("cyber")?"dark":"light"));
+                    AccountBehaviorTest.findButton(frame[0],"个性化").doClick();JComboBox<?> presets=selector(frame[0]);
+                    check(presets.getItemCount()==3,"unexpected preset count");for(int n=0;n<3;n++)check(names[n].equals(presets.getItemAt(n)),"preset names not plain or incorrect");
+                    presets.setSelectedIndex(index);frame[0].validate();checkSimpleMenu(frame[0].stylePanel());
+                    check(Appearance.load(home).theme.equals(ids[index])&&UiTheme.style().equals(ids[index]),"selection not globally applied/saved");
+                    check(UiTheme.p().dark()==(index!=0),"preset palette incorrect");
+                    JButton launch=AccountBehaviorTest.findButton(frame[0],"启动游戏");if(launchSize[0]==null){launchSize[0]=launch.getSize();comboSize[0]=presets.getSize();}
+                    check(launch.getSize().equals(launchSize[0])&&presets.getSize().equals(comboSize[0]),"preset changed component geometry");
+                    BufferedImage image=AppearanceControlsTest.render(launch);int hash=1;for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++)hash=31*hash+image.getRGB(x,y);signatures.add(hash);
+                    JSlider opacity=(JSlider)AccountUiBehaviorTest.findNamed(frame[0].stylePanel(),"uiTransparency");opacity.setValue(43);check(Appearance.load(home).uiTransparency==43,"transparency not saved");
+                    Appearance current=Appearance.load(home);check(current.mask==27&&current.blur==9&&!current.loop,"personalization overwrote wallpaper");check(opacity.getHeight()>=14&&opacity.getWidth()>200&&presets.getHeight()>=30,"minimum layout clipped controls");
                 });
-                LauncherDesignShot.shot(frame[0],out.resolve("style-"+style+"-minimum.png"));
-                SwingUtilities.invokeAndWait(()->AccountBehaviorTest.findButton(frame[0],"主页").doClick());LauncherDesignShot.shot(frame[0],out.resolve("home-"+style+"-minimum.png"));
+                LauncherDesignShot.shot(frame[0],out.resolve("personalization-"+ids[i]+"-minimum.png"));SwingUtilities.invokeAndWait(()->AccountBehaviorTest.findButton(frame[0],"主页").doClick());LauncherDesignShot.shot(frame[0],out.resolve("home-"+ids[i]+"-minimum.png"));
             }
-            check(signatures.size()==3,"actual buttons paint identically across styles");
+            check(signatures.size()==3,"color presets do not change actual buttons");
             SwingUtilities.invokeAndWait(()->{
-                click(frame[0],"wallpaperMenu");check(frame[0].appearancePanel().isVisible(),"wallpaper entry not routed");
-                check(AccountUiBehaviorTest.findNamed(frame[0].appearancePanel(),"uiTransparency")==null,"transparency still in wallpaper menu");
-                AccountBehaviorTest.findButton(frame[0].appearancePanel(),"应用壁纸").doClick();Appearance current=Appearance.load(home);check(current.buttonStyle.equals("cyber")&&current.theme.equals("dark")&&current.uiTransparency==37,"wallpaper overwrote style preferences");
-                frame[0].openDownloads();frame[0].validate();
-            });LauncherDesignShot.shot(frame[0],out.resolve("downloads-cyber-minimum.png"));
-            SwingUtilities.invokeAndWait(()->{frame[0].dispose();frame[0]=new LauncherFrame(false);frame[0].setVisible(true);check(UiTheme.style().equals("cyber")&&UiTheme.p().dark(),"restart lost selected style");frame[0].showStyles();frame[0].validate();});
-            LauncherDesignShot.shot(frame[0],out.resolve("style-cyber-restored.png"));
-            System.out.println("STYLE_THREE_DISTINCT_BUTTONS_THEME_TRANSPARENCY_NAVIGATION_INDEPENDENT_WALLPAPER_WRITES_RESTART_MINIMUM_LAYOUT_OK");
+                AccountBehaviorTest.findButton(frame[0],"个性化").doClick();
+                check(SwingUtilities.isDescendingFrom(AccountUiBehaviorTest.findNamed(frame[0],"wallpaperMenu"),frame[0].stylePanel()),"wallpaper entry outside personalization");
+                ((JButton)AccountUiBehaviorTest.findNamed(frame[0].stylePanel(),"wallpaperMenu")).doClick();check(AccountUiBehaviorTest.findNamed(frame[0].appearancePanel(),"uiTransparency")==null,"opacity in wallpaper menu");
+                AccountBehaviorTest.findButton(frame[0].appearancePanel(),"应用壁纸").doClick();check(Appearance.load(home).theme.equals("cyber")&&Appearance.load(home).uiTransparency==43,"wallpaper overwrote personalization");
+                check(((UiTheme.Button)AccountBehaviorTest.findButton(frame[0],"个性化")).selected,"wallpaper not grouped under personalization");
+                AccountBehaviorTest.findButton(frame[0].appearancePanel(),"返回个性化").doClick();check(frame[0].stylePanel().isShowing(),"wallpaper back button leaves personalization");
+                frame[0].dispose();frame[0]=new LauncherFrame(false);frame[0].setVisible(true);frame[0].showStyles();frame[0].validate();check(selector(frame[0]).getSelectedIndex()==2&&UiTheme.style().equals("cyber"),"restart lost preset");
+            });LauncherDesignShot.shot(frame[0],out.resolve("personalization-cyber-restored.png"));
+            System.out.println("PERSONALIZATION_NAME_ONLY_THREE_PALETTES_SHARED_ROUNDED_GEOMETRY_LEGACY_MIGRATION_TRANSPARENCY_WALLPAPER_RESTART_MINIMUM_OK");
         }finally{SwingUtilities.invokeAndWait(()->{if(frame[0]!=null)frame[0].dispose();});}System.exit(0);
     }
 }

@@ -35,8 +35,8 @@ final class AppearancePanel extends JPanel implements AutoCloseable {
         this.library=library;this.draft=saved.copy();this.apply=apply;this.back=back;
         setOpaque(false);setLayout(new BorderLayout(0,20));setBorder(new EmptyBorder(26,30,26,30));
         JPanel heading=UiTheme.transparent(new BorderLayout());
-        JPanel titles=UiTheme.transparent(new GridLayout(2,1,0,5));titles.add(UiTheme.label("让启动器，成为你的风景",24,true));titles.add(UiTheme.muted("导入你喜欢的图片或视频，打造专属桌面。",12));heading.add(titles,BorderLayout.CENTER);
-        UiTheme.Button returnButton=new UiTheme.Button("返回主页","home",UiTheme.Tone.SURFACE);returnButton.setName("returnHome");returnButton.setPreferredSize(new Dimension(102,38));returnButton.addActionListener(e->back.run());JPanel returnArea=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,0,0));returnArea.add(returnButton);heading.add(returnArea,BorderLayout.EAST);add(heading,BorderLayout.NORTH);
+        JPanel titles=UiTheme.transparent(new GridLayout(2,1,0,5));titles.add(UiTheme.label("个性化 · 壁纸",24,true));titles.add(UiTheme.muted("导入你喜欢的图片或视频，打造专属桌面。",12));heading.add(titles,BorderLayout.CENTER);
+        UiTheme.Button returnButton=new UiTheme.Button("返回个性化","",UiTheme.Tone.SURFACE);returnButton.setName("returnPersonalization");returnButton.setPreferredSize(new Dimension(102,38));returnButton.addActionListener(e->back.run());JPanel returnArea=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,0,0));returnArea.add(returnButton);heading.add(returnArea,BorderLayout.EAST);add(heading,BorderLayout.NORTH);
 
         JPanel columns=UiTheme.transparent(new GridBagLayout());GridBagConstraints c=new GridBagConstraints();c.gridy=0;c.fill=GridBagConstraints.BOTH;c.weighty=1;c.insets=new Insets(0,0,0,20);c.gridx=0;c.weightx=.58;
         UiTheme.Surface left=new UiTheme.Surface(new BorderLayout(0,13),22);left.setBorder(new EmptyBorder(20,20,18,20));

@@ -47,7 +47,7 @@ public final class MemoryAndClientsTest {
             });
             first.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);second.waitFor(8,java.util.concurrent.TimeUnit.SECONDS);Thread.sleep(250);
             check(!first.isAlive()&&!second.isAlive()&&unrelated.isAlive(),"stop did not isolate owned clients");
-            SwingUtilities.invokeAndWait(()->{check(AccountBehaviorTest.findButton(frame[0],"启动游戏").isEnabled(),"launch did not recover after stop");check(!AccountBehaviorTest.findButton(frame[0],"结束全部游戏").isEnabled(),"stop remains enabled without clients");frame[0].showAppearance();JButton back=(JButton)AccountUiBehaviorTest.findNamed(frame[0],"returnHome");check(back.getHeight()==38&&back.getWidth()==102,"return home is stretched");});
+            SwingUtilities.invokeAndWait(()->{check(AccountBehaviorTest.findButton(frame[0],"启动游戏").isEnabled(),"launch did not recover after stop");check(!AccountBehaviorTest.findButton(frame[0],"结束全部游戏").isEnabled(),"stop remains enabled without clients");frame[0].showAppearance();JButton back=(JButton)AccountUiBehaviorTest.findNamed(frame[0],"returnPersonalization");check(back.getHeight()==38&&back.getWidth()==102,"return home is stretched");});
             Path out=Path.of(args[0]);Files.createDirectories(out);
             for(String theme:List.of("light","dark"))SwingUtilities.invokeAndWait(()->{try{
                 UiTheme.set(theme);SettingsDialog global=new SettingsDialog(frame[0],fresh,fresh.resolve(".minecraft"));global.addNotify();global.validate();shot(global,out.resolve("memory-global-"+theme+".png"));global.dispose();
