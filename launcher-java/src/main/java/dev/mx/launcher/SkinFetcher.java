@@ -146,7 +146,7 @@ public final class SkinFetcher {
     }
 
 
-    /** 离线默认头像（内嵌 Steve；资源缺失时程序化绘制一个 Steve 风格头像）。 */
+    /** 离线默认头像（优先保留自定义头像，兜底使用原版 Steve 皮肤裁剪）。 */
     public static BufferedImage steve(Path home) {
         if (home != null) {
             BufferedImage custom = readImage(home.resolve("skins").resolve("steve.png"));
@@ -405,7 +405,7 @@ public final class SkinFetcher {
      * 离线：玩家导入的本地皮肤，或客户端 jar 里的官方默认 Steve / Alex。
      */
     static BufferedImage fullSkin(Session s, Path home) {
-        if (s == null) return defaultSkin(home, "steve");
+        if (s == null) return PlayerTextures.defaultSkin();
         Path file = home.resolve("skins").resolve(cacheKey(s) + "-skin.png");
         BufferedImage cached = readImage(file);
         if (cached != null) return cached;
@@ -419,10 +419,7 @@ public final class SkinFetcher {
                 }
             }
         }
-        String name = defaultName(s);
-        BufferedImage game = gameTexture(home, name);
-        if (game != null) return game;
-        return defaultSkin(home, name);
+        return PlayerTextures.defaultSkin();
     }
 
     /** 玩偶披风：只有正版账号带官方披风；取不到返回 null。 */
@@ -514,136 +511,6 @@ public final class SkinFetcher {
         }
     }
 
-    /**
-     * 没有客户端 jar 时的最终兜底：程序化生成一张 64×64 Steve / Alex 风格皮肤。
-     *
-     * <p>只填内层区域；外层（帽子 / 外套 / 袖子 / 裤子）留空，保证玩偶不会出现
-     * 全透明但被放大 0.6 像素的壳挡住四肢。
-     */
-    private static BufferedImage defaultSkin(Path home, String name) {
-        boolean alexModel = "alex".equalsIgnoreCase(name);
-        BufferedImage img = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-        g.setComposite(AlphaComposite.Src);
-        g.setColor(new Color(0, 0, 0, 0));
-        g.fillRect(0, 0, 64, 64);
-        g.setComposite(AlphaComposite.SrcOver);
-
-        Color skinFace = new Color(0xC6, 0x8A, 0x5E);
-        Color skinShade = new Color(0xB8, 0x7E, 0x53);
-        Color hair = new Color(0x3B, 0x28, 0x1C);
-        Color eye = new Color(0x3B, 0x5A, 0x8C);
-        Color shirt = new Color(0x2E, 0x8B, 0x8B);
-        Color shirtDark = new Color(0x25, 0x74, 0x74);
-        Color pants = new Color(0x3B, 0x3B, 0x9E);
-        Color pantsDark = new Color(0x2F, 0x2F, 0x82);
-        Color shoe = new Color(0x4A, 0x4A, 0x55);
-        int arm = alexModel ? 3 : 4;
-
-        // 内层（官方布局）：只填需要的面，外层面留透明
-        paint(g, 0, 0, 8, 8, 8, hair, skinShade, skinShade, skinFace, skinShade, skinShade);           // 头
-        paint(g, 16, 16, 8, 4, 12, shirtDark, shirtDark, shirt, shirt, shirt, shirtDark);             // 身体
-        paint(g, 0, 16, 4, 4, 12, pants, shoe, pants, pants, pants, pants);                            // 右腿
-        paint(g, 16, 48, 4, 4, 12, pants, shoe, pants, pants, pants, pants);                           // 左腿
-        paint(g, 40, 16, arm, 4, 12, shirt, skinFace, shirt, shirt, shirt, shirt);                     // 右臂（底面=手掌）
-        paint(g, 32, 48, arm, 4, 12, shirt, skinFace, shirt, shirt, shirt, shirt);                     // 左臂
-
-        // 脸：(8,8) 8×8
-        g.setColor(hair);
-        g.fillRect(8, 8, 8, 2);
-        g.fillRect(8, 10, 1, 4);
-        g.fillRect(15, 10, 1, 4);
-        g.setColor(Color.WHITE);
-        g.fillRect(9, 12, 2, 1);
-        g.fillRect(13, 12, 2, 1);
-        g.setColor(eye);
-        g.fillRect(10, 12, 1, 1);
-        g.fillRect(13, 12, 1, 1);
-        g.setColor(new Color(0xB0, 0x74, 0x50));
-        g.fillRect(11, 13, 2, 1);
-        g.setColor(new Color(0x84, 0x53, 0x38));
-        g.fillRect(10, 15, 4, 1);
-        g.setColor(skinShade);
-        g.fillRect(12, 8, 1, 8);
-
-        // 外层：留空的帽子层（不要全填，否则会把脸糊成深棕），只加发梢
-        g.setColor(hair);
-        g.fillRect(40, 8, 8, 2);       // 帽子正面顶部
-        g.fillRect(32, 8, 8, 2);       // 帽子顶部
-        g.fillRect(48, 8, 8, 2);
-        g.setColor(new Color(0x2E, 0x8B, 0x8B, 150));
-        g.fillRect(20, 36, 8, 12);     // 外套正面半透明阴影
-        g.dispose();
-        return img;
-    }
-    /** 按盒子六个面填充（顺序：顶 / 底 / 右 / 前 / 左 / 后，与皮肤 UV 布局一致）。 */
-    private static void paint(Graphics2D g, int rx, int ry, int w, int d, int h,
-                              Color top, Color bottom, Color right, Color front, Color left, Color back) {
-        g.setColor(top);    g.fillRect(rx + d, ry, w, d);
-        g.setColor(bottom); g.fillRect(rx + d + w, ry, w, d);
-        g.setColor(right);  g.fillRect(rx, ry + d, d, h);
-        g.setColor(front);  g.fillRect(rx + d, ry + d, w, h);
-        g.setColor(left);   g.fillRect(rx + d + w, ry + d, d, h);
-        g.setColor(back);   g.fillRect(rx + d + w + d, ry + d, w, h);
-    }
-
-    private static BufferedImage drawSteve() {
-        BufferedImage img = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = img.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        g.setColor(new Color(0x2B, 0x30, 0x3A));
-        g.fillRect(0, 0, SIZE, SIZE);
-
-        Color skin     = new Color(0xC6, 0x8A, 0x5E);
-        Color skinDark = new Color(0xA8, 0x6E, 0x48);
-        Color hair     = new Color(0x3B, 0x28, 0x1C);
-        Color shirt    = new Color(0x3E, 0x8C, 0x8C);
-        Color eye      = new Color(0x3B, 0x5A, 0x8C);
-        Color eyebrow  = new Color(0x4A, 0x33, 0x22);
-        Color mouth    = new Color(0x8A, 0x5A, 0x3A);
-
-        int headW = 56, headH = 56;
-        int hx = (SIZE - headW) / 2;
-        int hy = 20;
-
-        int bodyW = 76, bodyH = 34;
-        int bx = (SIZE - bodyW) / 2;
-        int by = hy + headH - 2;
-
-        g.setColor(shirt);
-        g.fillRect(bx, by, bodyW, bodyH);
-        g.setColor(shirt.darker());
-        g.fillRect(bx, by, bodyW, 5);
-
-        g.setColor(skin);
-        g.fillRect(hx, hy, headW, headH);
-        g.setColor(skinDark);
-        g.fillRect(hx, hy + headH - 6, headW, 6);
-
-        g.setColor(hair);
-        g.fillRect(hx, hy, headW, 13);
-        g.fillRect(hx, hy, 6, 30);
-        g.fillRect(hx + headW - 6, hy, 6, 30);
-
-        g.setColor(eyebrow);
-        g.fillRect(hx + 11, hy + 22, 12, 3);
-        g.fillRect(hx + headW - 23, hy + 22, 12, 3);
-
-        g.setColor(Color.WHITE);
-        g.fillRect(hx + 11, hy + 26, 12, 9);
-        g.fillRect(hx + headW - 23, hy + 26, 12, 9);
-        g.setColor(eye);
-        g.fillRect(hx + 15, hy + 27, 7, 7);
-        g.fillRect(hx + headW - 19, hy + 27, 7, 7);
-
-        g.setColor(skinDark);
-        g.fillRect(hx + headW / 2 - 3, hy + 36, 6, 8);
-
-        g.setColor(mouth);
-        g.fillRect(hx + 18, hy + 47, 20, 3);
-
-        g.dispose();
-        BufferedImage head=new BufferedImage(SIZE,SIZE,BufferedImage.TYPE_INT_ARGB);Graphics2D face=head.createGraphics();face.setRenderingHint(RenderingHints.KEY_INTERPOLATION,RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);face.drawImage(img,0,0,SIZE,SIZE,hx,hy,hx+headW,hy+headH,null);face.dispose();return head;
-    }
+    /** Original bundled Minecraft skin; no procedural replacement. */
+    private static BufferedImage drawSteve(){return cropHead(PlayerTextures.defaultSkin());}
 }

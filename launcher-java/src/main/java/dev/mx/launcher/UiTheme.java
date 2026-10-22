@@ -82,7 +82,7 @@ final class UiTheme {
         @Override public void paintThumb(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setColor(slider.isEnabled()?p().accent():p().line());g.fillOval(thumbRect.x,thumbRect.y,14,14);g.setColor(p().surface());g.fillOval(thumbRect.x+4,thumbRect.y+4,6,6);g.dispose();}
         @Override public void paintFocus(Graphics g){}
     });}
-    static void scroll(JScrollPane scroll){JScrollBar bar=scroll.getVerticalScrollBar();bar.setPreferredSize(new Dimension(8,0));bar.setUI(new BasicScrollBarUI(){
+    static void scroll(JScrollPane scroll){SmoothScroll.install(scroll);JScrollBar bar=scroll.getVerticalScrollBar();bar.setPreferredSize(new Dimension(8,0));bar.setUI(new BasicScrollBarUI(){
         @Override protected JButton createDecreaseButton(int orientation){return empty();}@Override protected JButton createIncreaseButton(int orientation){return empty();}
         private JButton empty(){JButton b=new JButton();b.setPreferredSize(new Dimension());b.setMinimumSize(new Dimension());b.setMaximumSize(new Dimension());return b;}
         @Override protected void paintTrack(Graphics g,JComponent c,Rectangle bounds){g.setColor(p().surface());g.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);}

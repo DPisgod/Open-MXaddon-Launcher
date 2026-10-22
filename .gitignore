@@ -111,6 +111,8 @@ server-backend/irc/bin/
 server-backend/irc/obj/
 server-backend/irc/publish*/
 appearance.properties
+player-doll.properties
+player-doll-cache/
 announcement.properties
 curseforge-key.dat
 .minecraft/

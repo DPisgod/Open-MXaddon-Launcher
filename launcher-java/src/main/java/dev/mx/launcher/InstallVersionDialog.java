@@ -83,7 +83,7 @@ final class InstallVersionDialog extends JDialog {
         });
         Runnable leave=()->{if(running){cancelRequested=true;if(installer!=null)installer.cancel();showStatus("正在取消…");close.setEnabled(false);}else dispose();};
         close.addActionListener(e->leave.run());addWindowListener(new WindowAdapter(){@Override public void windowClosing(WindowEvent e){leave.run();}});
-        UiTheme.refresh(root);setContentPane(root);WindowChrome.dialog(this);setSize(820,490);setMinimumSize(new Dimension(760,440));setLocationRelativeTo(owner);
+        UiTheme.refresh(root);setContentPane(root);WindowChrome.dialog(this);setSize(820,494);setMinimumSize(new Dimension(760,440));setLocationRelativeTo(owner);
         if(owner!=null&&owner.isShowing())setLocation(getX(),Math.max(owner.getY()+82,Math.min(getY(),owner.getY()+owner.getHeight()-160-getHeight())));
         if(preset!=null){games=List.of(preset);loading=true;type.setSelectedIndex(4);loading=false;filter();type.setEnabled(false);game.setEnabled(false);showStatus("选择加载器版本，或直接安装原版游戏。");}else if(network)fetchGames();
     }

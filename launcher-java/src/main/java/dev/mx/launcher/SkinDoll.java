@@ -84,7 +84,7 @@ final class SkinDoll extends JComponent {
             final BufferedImage skinImage = loadedSkin;
             final BufferedImage capeImage = loadedCape;
             SwingUtilities.invokeLater(() -> {
-                if (disposed) return;
+                if (disposed || session != target) return;
                 skin = skinImage;
                 cape = capeImage;
                 texture = normalize(skin);

@@ -183,6 +183,7 @@ public final class SettingsDialog extends JDialog {
         cacheRow.add(cacheLabel);
         cacheRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(cacheRow);
+        if(getOwner() instanceof LauncherFrame launcher){JButton doll=new UiTheme.Button("玩家玩偶…","user",UiTheme.Tone.SURFACE);doll.setName("playerDollSettingsButton");doll.addActionListener(e->launcher.showPlayerDollSettings(this));cacheRow.add(doll);}
 
         root.add(form, BorderLayout.CENTER);
 

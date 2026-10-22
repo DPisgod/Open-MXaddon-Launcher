@@ -11,7 +11,9 @@ final class UiMotion {
     /** Pair the Windows timer-resolution request with active animations, never idle windows. */
     static final class FrameTimer extends Timer {
         private boolean clock;
-        FrameTimer(int delay,java.awt.event.ActionListener listener){super(delay,listener);setCoalesce(true);}
+        // Keep the frame interval below Windows' 15.625ms scheduling quantum:
+        // a 16ms wait can otherwise round up to two ticks when timer resolution is throttled.
+        FrameTimer(int delay,java.awt.event.ActionListener listener){super(delay==16?15:delay,listener);setCoalesce(true);}
         @Override public void start(){if(!clock){FineClock.acquire();clock=true;}super.start();}
         @Override public void stop(){super.stop();if(clock){clock=false;FineClock.release();}}
     }

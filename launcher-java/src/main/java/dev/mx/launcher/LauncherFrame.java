@@ -51,12 +51,13 @@ public final class LauncherFrame extends JFrame {
     private final JProgressBar progress=new UiTheme.ProgressBar();
     private Timer poller;
     private Session session;
+    private final PlayerDoll playerDoll;
     private boolean busy,appearanceVisible,disposed,accountCleared=true;
 
     public LauncherFrame(){this(true);}
     /** UI harness never touches the file system outside its own home; launch stays available without authorization. */
     LauncherFrame(boolean initialize){
-        super("");network=initialize;WindowChrome.undecorate(this);UiTheme.set(appearance.theme);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        super("");network=initialize;playerDoll=new PlayerDoll(this,home,()->session,()->accounts.available(session),network);playerDoll.onVisibilityChanged(this::syncDollVisibility);WindowChrome.undecorate(this);UiTheme.set(appearance.theme);setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(1000,740));setSize(1140,810);setLocationRelativeTo(null);
         buildUi();Session saved=SessionStore.load(home);List<Session> available=accounts.available(saved);session=saved!=null?saved:available.isEmpty()?null:available.get(0);accountCleared=session==null;if(session!=null)SessionStore.save(home,session);applySession();avatar.setImage(session==null?null:SkinFetcher.cached(session,home));wallpaper.onChange(backdrop::repaint);wallpaper.onError(error->statusLabel.setText("壁纸读取失败，请在外观中更换"));wallpaper.select(library.find(appearance.wallpaper),appearance);
         addWindowListener(new WindowAdapter(){@Override public void windowOpened(WindowEvent e){refreshTheme();}@Override public void windowIconified(WindowEvent e){syncPlayback();}@Override public void windowDeiconified(WindowEvent e){syncPlayback();}@Override public void windowClosed(WindowEvent e){disposeResources();}});
@@ -122,6 +123,7 @@ public final class LauncherFrame extends JFrame {
         }.execute();
     }
     private void bootstrap(){
+        playerDoll.start();
         announcement.checkOnStartup();
         refreshVersions();Session saved=SessionStore.load(home);if(saved!=null)session=saved;applySession();refreshAvatarAsync();
         statusLabel.setText(selectedVersion.isEmpty()?"请添加游戏版本":"● 已就绪");
@@ -152,7 +154,7 @@ public final class LauncherFrame extends JFrame {
         String name=value.toString();try{Map<String,Object> meta=Json.parseObject(Files.readString(gameRoot.resolve("versions").resolve(name).resolve(name+".json")));String chosen=ContentCatalog.installedLoader(meta);loaderLabel.setText(chosen.isBlank()?"Minecraft 原版":chosen);Object libraries=meta.get("libraries");if(libraries instanceof List<?> list)for(Object entry:list)if(entry instanceof Map<?,?> lib){String coordinate=String.valueOf(lib.get("name"));if(coordinate.startsWith("net.fabricmc:fabric-loader:"))loaderLabel.setText("Fabric "+coordinate.substring(coordinate.lastIndexOf(':')+1));}}catch(Exception ignored){}
         versionBox.setToolTipText(name);
     }
-    private void applySession(){if(accountCleared){nameLabel.setText("添加游戏账号");nameLabel.setToolTipText("点击添加账号");typeLabel.setText("尚未选择账号");return;}String display=session.name;FontMetrics fm=nameLabel.getFontMetrics(nameLabel.getFont());while(display.length()>1&&fm.stringWidth(display)>96)display=display.substring(0,display.offsetByCodePoints(display.length(),-1));nameLabel.setText(display.equals(session.name)?display:display+"…");nameLabel.setToolTipText(session.name+" · 点击切换账号");typeLabel.setText(session.premium?"Minecraft 正版账号":"Minecraft 离线账号");}
+    private void applySession(){playerDoll.accountChanged();if(accountCleared){nameLabel.setText("添加游戏账号");nameLabel.setToolTipText("点击添加账号");typeLabel.setText("尚未选择账号");return;}String display=session.name;FontMetrics fm=nameLabel.getFontMetrics(nameLabel.getFont());while(display.length()>1&&fm.stringWidth(display)>96)display=display.substring(0,display.offsetByCodePoints(display.length(),-1));nameLabel.setText(display.equals(session.name)?display:display+"…");nameLabel.setToolTipText(session.name+" · 点击切换账号");typeLabel.setText(session.premium?"Minecraft 正版账号":"Minecraft 离线账号");}
     private void bindAccountPicker(Component component){component.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));component.addMouseListener(new MouseAdapter(){@Override public void mouseClicked(MouseEvent e){if(SwingUtilities.isLeftMouseButton(e))showAccounts();}});if(component instanceof Container container)for(Component child:container.getComponents())bindAccountPicker(child);}
     void showAccounts(){if(busy)return;new AccountPopup(home,accounts.available(accountCleared?null:session),accountCleared?null:session,this::switchAccount,this::removeAccount,this::configureSkin,this::onLogin).showAbove(profileControl);}
     private void configureSkin(Session selected){
@@ -207,6 +209,7 @@ public final class LauncherFrame extends JFrame {
         useAccount(picked,true);
     }
     private void openSettings(){if(busy)return;SettingsDialog dialog=new SettingsDialog(this,home,gameRoot);UiTheme.refresh(dialog);dialog.setVisible(true);if(dialog.changed()){session=SessionStore.load(home);accountCleared=session==null;applySession();refreshVersions();refreshAvatarAsync();}}
+    void showPlayerDollSettings(Window parent){playerDoll.openSettings(parent);}
     private void poll(){
         if(disposed)return;
         if(busy)return;
@@ -271,8 +274,11 @@ public final class LauncherFrame extends JFrame {
         // 放在 DRAG_LAYER 之上：既压住页面内容，又能稳定收到鼠标事件
         layered.add(created,Integer.valueOf(JLayeredPane.DRAG_LAYER));
         layered.repaint();
-        doll=created;
+        doll=created;syncDollVisibility();
+        created.addMouseListener(new MouseAdapter(){@Override public void mouseClicked(MouseEvent e){if(SwingUtilities.isRightMouseButton(e))playerDoll.openSettings(LauncherFrame.this);}});
     }
+
+    private void syncDollVisibility(){if(doll!=null)doll.setVisible(appearance.doll&&!playerDoll.options().enabled);}
 
     /** 窗口尺寸变化后把玩偶拉回可视区域。 */
     private void clampDoll(){
@@ -299,7 +305,7 @@ public final class LauncherFrame extends JFrame {
         wallpaper.setPaused(minimized||appearanceVisible||styleVisible||downloadsVisible||(appearance.pauseWithGame&&(game||busy)));
         if(appearancePanel!=null)appearancePanel.setActive(appearanceVisible&&!minimized&&!(appearance.pauseWithGame&&game));
     }
-    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();if(doll!=null){doll.stop();doll=null;}}
+    private void disposeResources(){if(disposed)return;disposed=true;playerDoll.close();announcement.close();if(poller!=null)poller.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();if(doll!=null){doll.stop();doll=null;}}
     @Override public void dispose(){disposeResources();super.dispose();}
     private void showError(String title,String body){WindowChrome.prompt(this,title,body,false);}
     private static String root(Throwable e){while(e.getCause()!=null&&e.getCause()!=e)e=e.getCause();return e.getMessage()==null?"操作未完成，请重试。":e.getMessage();}
