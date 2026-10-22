@@ -97,6 +97,22 @@ if (Test-Path $resources) {
     Write-Host "  资源已合并: src\main\resources"
 }
 
+# Application credentials stay outside tracked sources and are injected only into build outputs.
+$curseForgeKey = $env:CURSEFORGE_BUILD_API_KEY
+$curseForgeKeyFile = Join-Path $Here 'curseforge-api.key'
+if ([string]::IsNullOrWhiteSpace($curseForgeKey) -and (Test-Path -LiteralPath $curseForgeKeyFile -PathType Leaf)) {
+    $curseForgeKey = [IO.File]::ReadAllText($curseForgeKeyFile)
+}
+if (-not [string]::IsNullOrWhiteSpace($curseForgeKey)) {
+    $curseForgeKey = $curseForgeKey.Trim()
+    if ($curseForgeKey -match '[\r\n]') { throw 'CurseForge API Key 必须为单行' }
+    [IO.File]::WriteAllText((Join-Path $classes 'OML-curseforge-api.key'), $curseForgeKey, [Text.UTF8Encoding]::new($false))
+    Write-Host '  CurseForge 项目密钥已注入（不显示密钥）'
+} else {
+    Write-Host '  未提供 CurseForge 项目密钥；此构建需要用户自行配置'
+}
+$curseForgeKey = $null
+
 $mf = Join-Path $Here "build\MANIFEST.MF"
 @"
 Manifest-Version: 1.0

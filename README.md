@@ -32,7 +32,7 @@ OML 是 Open-MXaddon-Launcher 的简写。旧版 MXCloud 用户首次升级请�
 
 顶部「下载」现为主界面内的下载中心：横向切换游戏版本、Mod、整合包、数据包、资源包和光影包。游戏库提供最新正式/预览版本卡片、正式/预览/远古/愚人节分类及版本号搜索；配置安装时自动检查各加载器的兼容版本。
 
-资源支持全部来源合并浏览、类型标签、排序、重置条件，以及简介、下载量、更新时间和项目图标。数据包只选择数据包 ZIP，安装到目标实例具体世界的 saves/<存档>/datapacks；也可仅下载文件。CurseForge 仍需在本机配置自己的 API Key，未配置时全部来源会提示并展示 Modrinth。
+资源支持全部来源合并浏览、类型标签、排序、重置条件，以及简介、下载量、更新时间和项目图标。数据包只选择数据包 ZIP，安装到目标实例具体世界的 saves/<存档>/datapacks；也可仅下载文件。官方发行版已配置 CurseForge 项目 API Key，可直接浏览和下载。
 
 OptiFine 提供官网入口和本地 JAR 安装：先从官网下载与游戏版本匹配的安装包，在游戏配置中选择本地 JAR，启动器将在独立实例中完成安装。当前本地 OptiFine 独立安装与其他模组加载器互斥。
 
@@ -43,7 +43,7 @@ OptiFine 提供官网入口和本地 JAR 安装：先从官网下载与游戏版
 - 顶部 **下载**：选择 Modrinth / CurseForge、模组 / 光影包 / 材质资源包 / 整合包；按 Minecraft 与加载器筛选，支持 Beta / Alpha 文件、分页和必需依赖下载。
 - 模组、光影与材质分别安装到目标实例的 `mods`、`shaderpacks`、`resourcepacks`；光影仍需要游戏内适用的 Iris / OptiFine 等渲染支持。
 - 整合包支持 Modrinth `.mrpack` 与 CurseForge `manifest.json` ZIP，可在线下载或本地导入；按清单安装游戏、加载器、文件和客户端覆盖配置。服务器专用文件不安装，未完成的实例不会进入版本列表。
-- CurseForge 需要官方 API Key：在下载页的 **CurseForge 密钥** 中填写，使用 Windows DPAPI 加密保存。也可设置 `CURSEFORGE_API_KEY` 环境变量。未配置时 Modrinth 正常可用；作者未开放第三方下载的文件会提示到原项目页下载，不猜测下载地址。
+- 官方发行版默认使用获批的 CurseForge 项目 API Key。需要覆盖时，可在下载页的 **CurseForge 密钥** 中填写自己的密钥，使用 Windows DPAPI 加密保存；留空保存可清除覆盖。读取优先级为 `CURSEFORGE_API_KEY` 环境变量、本机密钥、发行版默认密钥。自行构建且未提供项目密钥时仍需自行配置；作者未开放第三方下载的文件会提示到原项目页下载，不猜测下载地址。
 
 ### 玩家玩偶
 

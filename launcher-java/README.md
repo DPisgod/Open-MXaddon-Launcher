@@ -48,12 +48,14 @@ pwsh -File build.ps1 -SkipShell   # 只生成 dist\
 依赖（JNA 5.14.0）会自动下载到 `lib\`。单文件版本需要 MSVC Build Tools，
 脚本通过 `shell\build_shell.ps1` 编译 `shell\OMLLauncher.cpp`。
 
+发行构建从 `CURSEFORGE_BUILD_API_KEY` 环境变量或本目录的 `curseforge-api.key` 文件读取项目密钥，并注入 JAR 资源；文件只包含一行密钥，已由仓库的 `*.key` 规则忽略。密钥不要写入源码或提交到 Git。未提供密钥仍可构建，使用者需要自行配置 CurseForge。随客户端分发的密钥可从构建产物中提取，不能视为服务端秘密。
+
 ## 说明
 
 - 主页支持拖入 Modrinth 格式的 ZIP / MRPACK 和 CurseForge ZIP，弹出“自动安装”后确认安装；拖入 JAR 模组会直接添加到当前选中版本的 mods。
 - 设置提供 Java 检测与切换列表，置顶“自动选择”；自动模式优先实例运行时，再匹配本机相同主版本，保留手动指定路径。
 - 界面风格平铺为六个单选项：浅色、深色、霓虹赛博、中国红、樱花粉、基佬紫；点击圆点立即应用并保存。
 - 个性化中的 UI 透明度跟随滑块实时预览，松开鼠标后保存；拖动过程不写配置，保存失败恢复原值。
-- 游戏与资源直接访问官方 Mojang、加载器发布源、Modrinth / CurseForge 与 Adoptium；CurseForge Key 仅本机加密保存。
+- 游戏与资源直接访问官方 Mojang、加载器发布源、Modrinth / CurseForge 与 Adoptium；官方发行版自带 CurseForge 项目密钥，用户覆盖密钥使用本机 DPAPI 加密保存。读取优先级：`CURSEFORGE_API_KEY` 环境变量、本机覆盖、发行版密钥。
 - 游戏进程日志：`<游戏目录>\logs\launcher-game.log`。
 - 游戏目录：`.minecraft`；每个新实例独立存放于 `versions/<实例>/instance`。
