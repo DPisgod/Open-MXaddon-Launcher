@@ -200,7 +200,8 @@ public final class LauncherFrame extends JFrame {
         homeTab.selected=!appearanceVisible&&!downloadsVisible&&!styleVisible;appearanceTab.selected=styleVisible||appearanceVisible;downloadsTab.selected=downloadsVisible;UiTheme.refresh(getContentPane());getContentPane().revalidate();getContentPane().repaint();
         try{if(isDisplayable()){com.sun.jna.platform.win32.WinDef.HWND hwnd=new com.sun.jna.platform.win32.WinDef.HWND(com.sun.jna.Native.getComponentPointer(this));int[] dark={UiTheme.p().dark()?1:0};Dwm.INSTANCE.DwmSetWindowAttribute(hwnd,20,dark,4);}}catch(Throwable ignored){}
     }
-    private void updateTransparency(){for(UiTheme.Surface surface:wallpaperSurfaces){surface.transparency=appearance.uiTransparency;surface.repaint();}}
+    private void updateTransparency(){previewTransparency(appearance.uiTransparency);}
+    private void previewTransparency(int value){for(UiTheme.Surface surface:wallpaperSurfaces){surface.transparency=value;surface.repaint();}}
     private interface Dwm extends com.sun.jna.Library{Dwm INSTANCE=com.sun.jna.Native.load("dwmapi",Dwm.class);int DwmSetWindowAttribute(com.sun.jna.platform.win32.WinDef.HWND hwnd,int attribute,int[] value,int size);}
     private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;styleVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pageHost.transition(()->pages.show(pageHost,"home"));syncPlayback();refreshTheme();}
     void showAppearance(){
@@ -215,7 +216,7 @@ public final class LauncherFrame extends JFrame {
     void showStyles(){
         if(downloadCenter!=null&&downloadCenter.busy())return;
         pageHost.transition(()->{if(stylePanel!=null)pageHost.remove(stylePanel);
-        stylePanel=new StylePanel(appearance,this::applyStyle,this::showHome,this::showAppearance);pageHost.add(stylePanel,"styles");pages.show(pageHost,"styles");});
+        stylePanel=new StylePanel(appearance,this::applyStyle,this::previewTransparency,this::showHome,this::showAppearance);pageHost.add(stylePanel,"styles");pages.show(pageHost,"styles");});
         appearanceVisible=false;downloadsVisible=false;styleVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);
         syncPlayback();refreshTheme();
     }

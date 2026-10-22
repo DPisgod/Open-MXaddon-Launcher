@@ -50,6 +50,7 @@ pwsh -File build.ps1 -SkipShell   # 只生成 dist\
 
 ## 说明
 
+- 个性化中的 UI 透明度跟随滑块实时预览，松开鼠标后保存；拖动过程不写配置，保存失败恢复原值。
 - 游戏与资源直接访问官方 Mojang、加载器发布源、Modrinth / CurseForge 与 Adoptium；CurseForge Key 仅本机加密保存。
 - 游戏进程日志：`<游戏目录>\logs\launcher-game.log`。
 - 游戏目录：`.minecraft`；每个新实例独立存放于 `versions/<实例>/instance`。
