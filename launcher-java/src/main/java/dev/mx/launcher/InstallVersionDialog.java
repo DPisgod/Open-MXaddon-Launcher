@@ -41,9 +41,9 @@ final class InstallVersionDialog extends JDialog {
     }
     InstallVersionDialog(Window owner,Path gameRoot,Consumer<String> installed,boolean network,DownloadCatalog.Game preset){
         super(owner,"配置游戏与加载器",ModalityType.APPLICATION_MODAL);this.network=network;setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-        UiTheme.Surface root=new UiTheme.Surface(new BorderLayout(0,20),0);root.setBorder(new EmptyBorder(24,28,24,28));
-        JPanel heading=UiTheme.transparent(new GridLayout(0,1,0,8));heading.add(UiTheme.label("安装 Minecraft",23,true));heading.add(UiTheme.muted("官方版本列表 · 独立实例 · 下载校验 · 自动匹配运行环境",12));root.add(heading,BorderLayout.NORTH);
-        JPanel form=UiTheme.transparent(new GridBagLayout());
+        UiTheme.Surface root=new UiTheme.Surface(new BorderLayout(0,12),0);root.setBorder(new EmptyBorder(16,20,16,20));
+        JPanel heading=UiTheme.transparent(new GridLayout(0,1,0,4));heading.add(UiTheme.label("安装 Minecraft",20,true));heading.add(UiTheme.muted("官方版本列表 · 独立实例 · 下载校验 · 自动匹配运行环境",11));root.add(heading,BorderLayout.NORTH);
+        JPanel form=new InstallationForm();form.setOpaque(false);
         JPanel cards=UiTheme.transparent(new GridLayout(1,5,8,0));
         for(var value:DownloadCatalog.Loader.values()){
             JPanel card=UiTheme.transparent(new BorderLayout(0,4));UiTheme.Button button=new UiTheme.Button(value.label,"",UiTheme.Tone.SURFACE);button.setFont(UiTheme.font(12,true));JLabel label=UiTheme.muted(value==DownloadCatalog.Loader.VANILLA?"无需加载器":"选择游戏后检测",10);label.setHorizontalAlignment(SwingConstants.CENTER);card.add(button,BorderLayout.CENTER);card.add(label,BorderLayout.SOUTH);cards.add(card);loaderButtons.put(value,button);loaderLabels.put(value,label);
@@ -55,8 +55,9 @@ final class InstallVersionDialog extends JDialog {
         optifineLocal.addActionListener(e->{if(running)return;FileDialog choose=new FileDialog(this,"选择从 OptiFine 官网获取的安装 JAR",FileDialog.LOAD);choose.setVisible(true);if(choose.getFile()!=null){Path file=Path.of(choose.getDirectory(),choose.getFile());try{OptiFineSupport.validate(file);optifine=file;optifineName.setText(file.getFileName().toString());loader.setSelectedItem(DownloadCatalog.Loader.VANILLA);}catch(Exception failure){status.setText("无法使用此文件："+failure.getMessage());}}choose.dispose();});
         clear.addActionListener(e->{if(running)return;optifine=null;optifineName.setText("未选择本地安装包 · 独立安装，与模组加载器互斥");});
         UiTheme.Button manual=new UiTheme.Button("仅下载加载器","download",UiTheme.Tone.SURFACE);
-        manual.setToolTipText("Forge / NeoForge 下载官方安装器；Fabric / Quilt 下载所选加载器 JAR");row(form,7,"手动下载",manual);root.add(form,BorderLayout.CENTER);
-        JPanel bottom=UiTheme.transparent(new BorderLayout(0,12));bottom.add(status,BorderLayout.NORTH);progress.setPreferredSize(new Dimension(100,7));bottom.add(progress,BorderLayout.CENTER);
+        manual.setToolTipText("Forge / NeoForge 下载官方安装器；Fabric / Quilt 下载所选加载器 JAR");row(form,7,"手动下载",manual);
+        JScrollPane optionsScroll=new JScrollPane(form);optionsScroll.setName("installationOptions");optionsScroll.setBorder(null);optionsScroll.setOpaque(false);optionsScroll.getViewport().setOpaque(false);optionsScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);UiTheme.scroll(optionsScroll);root.add(optionsScroll,BorderLayout.CENTER);
+        JPanel bottom=UiTheme.transparent(new BorderLayout(0,8));bottom.add(status,BorderLayout.NORTH);progress.setPreferredSize(new Dimension(100,7));bottom.add(progress,BorderLayout.CENTER);
         JPanel actions=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,8,0));actions.add(close);actions.add(start);bottom.add(actions,BorderLayout.SOUTH);root.add(bottom,BorderLayout.SOUTH);
         for(JComboBox<?> box:List.of(type,game,loader,loaderVersion))UiTheme.combo(box);loaderVersion.setEnabled(false);api.setEnabled(false);start.setEnabled(false);
         type.addActionListener(e->{if(!loading)filter();});game.addActionListener(e->{if(!loading)loadCompatibility();});loader.addActionListener(e->loadLoaders());
@@ -74,8 +75,17 @@ final class InstallVersionDialog extends JDialog {
         });
         Runnable leave=()->{if(running){cancelRequested=true;if(installer!=null)installer.cancel();status.setText("正在取消…");close.setEnabled(false);}else dispose();};
         close.addActionListener(e->leave.run());addWindowListener(new WindowAdapter(){@Override public void windowClosing(WindowEvent e){leave.run();}});
-        UiTheme.refresh(root);setContentPane(root);WindowChrome.dialog(this);setSize(900,790);setMinimumSize(new Dimension(840,740));setLocationRelativeTo(owner);
+        UiTheme.refresh(root);setContentPane(root);WindowChrome.dialog(this);setSize(820,360);setMinimumSize(new Dimension(760,320));setLocationRelativeTo(owner);
+        if(owner!=null&&owner.isShowing())setLocation(getX(),Math.max(owner.getY()+90,getY()-40));
         if(preset!=null){games=List.of(preset);loading=true;type.setSelectedIndex(4);loading=false;filter();type.setEnabled(false);game.setEnabled(false);status.setText("选择加载器版本，或直接安装原版游戏。");}else if(network)fetchGames();
+    }
+    private static final class InstallationForm extends JPanel implements Scrollable{
+        InstallationForm(){super(new GridBagLayout());}
+        public Dimension getPreferredScrollableViewportSize(){return getPreferredSize();}
+        public int getScrollableUnitIncrement(Rectangle visible,int orientation,int direction){return 24;}
+        public int getScrollableBlockIncrement(Rectangle visible,int orientation,int direction){return Math.max(24,visible.height-24);}
+        public boolean getScrollableTracksViewportWidth(){return true;}
+        public boolean getScrollableTracksViewportHeight(){return false;}
     }
     private static void row(JPanel form,int row,String text,Component component){GridBagConstraints c=new GridBagConstraints();c.gridy=row;c.gridx=0;c.anchor=GridBagConstraints.WEST;c.insets=new Insets(7,0,7,16);form.add(UiTheme.muted(text,12),c);c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;c.insets=new Insets(7,0,7,0);component.setPreferredSize(new Dimension(350,34));form.add(component,c);}
     private void fetchGames(){new SwingWorker<List<DownloadCatalog.Game>,Void>(){
