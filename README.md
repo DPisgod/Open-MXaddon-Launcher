@@ -167,6 +167,15 @@ pwsh -File installer\build-installer.ps1  # → artifacts\installer\OML-Setup-<�
 [Modrinth mrpack 格式](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack)。
 本实现未复制 PCL 的源码。
 
-## 五、许可
+## 五、皮肤玩偶（桌宠）
+
+主页上站着一个 3D 皮肤玩偶，跟着当前账号换皮肤：
+
+- **正版账号**：加载官方皮肤与披风（sessionserver 的 textures 属性），细臂（slim / Alex）模型自动识别。
+- **离线账号**：优先用你为该账号导入的本地皮肤；没有导入时取客户端 jar 里的官方默认皮肤（按名字稳定分配 Steve / Alex 等），再兜底为程序化生成的内置皮肤。
+- **立体多层渲染**：头 8³、身体 8×12×4、四肢 4×12×4，按皮肤 UV 取六个面；皮肤自带的帽子 / 外套 / 袖子 / 裤子作为外层向外鼓 0.6 像素叠加，披风单独一层贴在后背；定向光 + 画家算法排序，带呼吸浮动与待机摆动。
+- **交互**：左键拖动移动，右键或按住 Shift 拖动旋转，滚轮缩放，双击复位；位置、朝向、缩放写入 `appearance.properties`，下次启动恢复。
+- **开关**：顶栏「风格」→「皮肤玩偶」勾选框，随时开关，关闭后立即隐藏并记住设置。
+## 六、许可
 
 原工程为私人项目。本版本仅保留启动游戏所需功能，供本地使用。

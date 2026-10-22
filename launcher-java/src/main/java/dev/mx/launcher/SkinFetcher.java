@@ -1,6 +1,7 @@
 package dev.mx.launcher;
 
 import javax.imageio.ImageIO;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -105,7 +106,12 @@ public final class SkinFetcher {
             }finally{reader.dispose();}
         }
         BufferedImage head=cropHead(skin);Path dir=home.resolve("skins");Files.createDirectories(dir);Path temp=Files.createTempFile(dir,"head-",".tmp");
-        try{synchronized(SkinFetcher.class){ImageIO.write(head,"png",temp.toFile());Files.move(temp,dir.resolve(cacheKey(s)+".png"),StandardCopyOption.REPLACE_EXISTING);}}finally{Files.deleteIfExists(temp);}
+        Path full=Files.createTempFile(dir,"skin-",".tmp");
+        try{synchronized(SkinFetcher.class){
+            ImageIO.write(head,"png",temp.toFile());Files.move(temp,dir.resolve(cacheKey(s)+".png"),StandardCopyOption.REPLACE_EXISTING);
+            // 玩偶用整张皮肤，与头像分开缓存
+            ImageIO.write(skin,"png",full.toFile());Files.move(full,dir.resolve(cacheKey(s)+"-skin.png"),StandardCopyOption.REPLACE_EXISTING);
+        }}finally{Files.deleteIfExists(temp);Files.deleteIfExists(full);}
         return head;
     }
 
@@ -116,19 +122,29 @@ public final class SkinFetcher {
     }
 
     private static BufferedImage fromGameDefault(Path home,String name){
-        if(home==null)return null;String key=home.toAbsolutePath()+":"+name;BufferedImage cached=DEFAULT_HEADS.get(key);if(cached!=null)return cached;
+        BufferedImage raw=gameTexture(home,name);return raw==null?null:cropHead(raw);
+    }
+
+    /** 从已安装客户端 jar 取整张默认皮肤（64×64），供皮肤玩偶使用。 */
+    private static BufferedImage gameTexture(Path home,String name){
+        if(home==null)return null;String key="raw:"+home.toAbsolutePath()+":"+name;BufferedImage cached=DEFAULT_HEADS.get(key);if(cached!=null)return cached;
         Path versions=home.resolve(".minecraft/versions");if(!Files.isDirectory(versions))return null;
         try(var dirs=Files.list(versions)){
             for(Path version:dirs.filter(Files::isDirectory).toList()){
                 String id=version.getFileName().toString();Path actual=VersionInstaller.gameDirectory(home.resolve(".minecraft"),id);
                 Path jar=actual.resolve("versions").resolve(id).resolve(id+".jar");if(!Files.isRegularFile(jar)||Files.size(jar)<1024*1024)continue;
-                try(ZipFile archive=new ZipFile(jar.toFile())){var entry=archive.getEntry("assets/minecraft/textures/entity/player/wide/"+name+".png");if(entry==null)continue;
-                    try(InputStream in=archive.getInputStream(entry)){BufferedImage raw=ImageIO.read(in);if(raw!=null){BufferedImage head=cropHead(raw);DEFAULT_HEADS.put(key,head);return head;}}
+                try(ZipFile archive=new ZipFile(jar.toFile())){
+                    for(String path:new String[]{"assets/minecraft/textures/entity/player/wide/"+name+".png",
+                                                 "assets/minecraft/textures/entity/"+name+".png"}){
+                        var entry=archive.getEntry(path);if(entry==null)continue;
+                        try(InputStream in=archive.getInputStream(entry)){BufferedImage raw=ImageIO.read(in);if(raw!=null){DEFAULT_HEADS.put(key,raw);return raw;}}
+                    }
                 }catch(IOException ignored){}
             }
         }catch(IOException ignored){}
         return null;
     }
+
 
     /** 离线默认头像（内嵌 Steve；资源缺失时程序化绘制一个 Steve 风格头像）。 */
     public static BufferedImage steve(Path home) {
@@ -374,6 +390,203 @@ public final class SkinFetcher {
      * <p>按 Minecraft 皮肤的真实比例绘制（在 8x8 网格上放大）：
      * 头部占上方，肩部在下缘被圆形裁剪，整体居中。
      */
+    // ============================================================
+    //  皮肤玩偶：整张皮肤 + 披风
+    // ============================================================
+
+    private static final Map<String,Object[]> TEXTURES = new ConcurrentHashMap<>();
+
+    record Textures(String skin, String cape, boolean slim) {}
+
+    /**
+     * 玩偶用的整张皮肤。
+     *
+     * <p>正版：官方皮肤（textures.minecraft.net，落到 skins/&lt;key&gt;-skin.png）；
+     * 离线：玩家导入的本地皮肤，或客户端 jar 里的官方默认 Steve / Alex。
+     */
+    static BufferedImage fullSkin(Session s, Path home) {
+        if (s == null) return defaultSkin(home, "steve");
+        Path file = home.resolve("skins").resolve(cacheKey(s) + "-skin.png");
+        BufferedImage cached = readImage(file);
+        if (cached != null) return cached;
+        if (s.premium && s.uuid != null && s.uuid.replace("-", "").matches("[a-fA-F0-9]{32}")) {
+            Textures textures = textures(s.uuid);
+            if (textures != null && textures.skin() != null) {
+                BufferedImage image = download(textures.skin());
+                if (image != null) {
+                    writeCache(file.getParent(), file, image);
+                    return image;
+                }
+            }
+        }
+        String name = defaultName(s);
+        BufferedImage game = gameTexture(home, name);
+        if (game != null) return game;
+        return defaultSkin(home, name);
+    }
+
+    /** 玩偶披风：只有正版账号带官方披风；取不到返回 null。 */
+    static BufferedImage cape(Session s, Path home) {
+        if (s == null || !s.premium || s.uuid == null || s.uuid.isBlank()) return null;
+        Path file = home.resolve("skins").resolve(cacheKey(s) + "-cape.png");
+        BufferedImage cached = readImage(file);
+        if (cached != null) return cached;
+        Textures textures = textures(s.uuid);
+        if (textures == null || textures.cape() == null) return null;
+        BufferedImage image = download(textures.cape());
+        if (image != null) {
+            writeCache(file.getParent(), file, image);
+            return image;
+        }
+        return null;
+    }
+
+    /** slim（Alex 细臂）判定：经典手臂背面区域 (52,20)-(56,32) 全空即视为 3 像素手臂。 */
+    static boolean slim(BufferedImage skin) {
+        if (skin == null || skin.getHeight() < 64) return false;
+        int scale = Math.max(1, skin.getWidth() / 64);
+        for (int y = 20; y < 32; y++) {
+            for (int x = 52; x < 56; x++) {
+                int px = Math.min(skin.getWidth() - 1, x * scale);
+                int py = Math.min(skin.getHeight() - 1, y * scale);
+                if (((skin.getRGB(px, py) >>> 24) & 0xFF) > 8) return false;
+            }
+        }
+        return true;
+    }
+
+    private static String defaultName(Session s) {
+        String[] defaults = {"steve", "alex", "ari", "efe", "kai", "makena", "noor", "sunny", "zuri"};
+        String name = s == null ? "Steve" : s.name;
+        return defaults[Math.floorMod(UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8)).hashCode(), defaults.length)];
+    }
+
+    /** 解析官方 textures 属性：皮肤地址、披风地址、是否 slim。结果缓存 10 分钟。 */
+    @SuppressWarnings("unchecked")
+    private static Textures textures(String uuid) {
+        String key = uuid.replace("-", "").toLowerCase();
+        Object[] cached = TEXTURES.get(key);
+        if (cached != null && System.currentTimeMillis() - (Long) cached[0] < 600_000) return (Textures) cached[1];
+        Textures result = null;
+        byte[] bytes = httpGet("https://sessionserver.mojang.com/session/minecraft/profile/" + key);
+        if (bytes != null && bytes.length > 0) {
+            try {
+                Map<String, Object> profile = Json.parseObject(new String(bytes, StandardCharsets.UTF_8));
+                if (profile.get("properties") instanceof List<?> properties) {
+                    for (Object item : properties) {
+                        if (!(item instanceof Map<?, ?> raw)) continue;
+                        Map<String, Object> property = (Map<String, Object>) raw;
+                        if (!"textures".equals(Json.str(property, "name"))) continue;
+                        String base64 = Json.str(property, "value");
+                        if (base64 == null || base64.isBlank()) continue;
+                        Map<String, Object> decoded = Json.parseObject(new String(java.util.Base64.getDecoder().decode(base64), StandardCharsets.UTF_8));
+                        Map<String, Object> list = Json.obj(decoded, "textures");
+                        if (list == null) continue;
+                        String skinUrl = null, capeUrl = null;
+                        Map<String, Object> skin = Json.obj(list, "SKIN");
+                        if (skin != null) skinUrl = Json.str(skin, "url");
+                        Map<String, Object> cape = Json.obj(list, "CAPE");
+                        if (cape != null) capeUrl = Json.str(cape, "url");
+                        boolean slimModel = "slim".equalsIgnoreCase(Json.str(Json.obj(skin == null ? Map.of() : skin, "metadata"), "model"));
+                        result = new Textures(https(skinUrl), https(capeUrl), slimModel);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        TEXTURES.put(key, new Object[]{System.currentTimeMillis(), result});
+        return result;
+    }
+
+    private static String https(String url) {
+        if (url == null || url.isBlank()) return null;
+        return url.startsWith("http://") ? "https://" + url.substring("http://".length()) : url;
+    }
+
+    private static BufferedImage download(String url) {
+        byte[] bytes = httpGet(url);
+        if (bytes == null || bytes.length == 0) return null;
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
+            return image == null || image.getWidth() < 32 ? null : image;
+        } catch (IOException failure) {
+            return null;
+        }
+    }
+
+    /**
+     * 没有客户端 jar 时的最终兜底：程序化生成一张 64×64 Steve / Alex 风格皮肤。
+     *
+     * <p>只填内层区域；外层（帽子 / 外套 / 袖子 / 裤子）留空，保证玩偶不会出现
+     * 全透明但被放大 0.6 像素的壳挡住四肢。
+     */
+    private static BufferedImage defaultSkin(Path home, String name) {
+        boolean alexModel = "alex".equalsIgnoreCase(name);
+        BufferedImage img = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.setComposite(AlphaComposite.Src);
+        g.setColor(new Color(0, 0, 0, 0));
+        g.fillRect(0, 0, 64, 64);
+        g.setComposite(AlphaComposite.SrcOver);
+
+        Color skinFace = new Color(0xC6, 0x8A, 0x5E);
+        Color skinShade = new Color(0xB8, 0x7E, 0x53);
+        Color hair = new Color(0x3B, 0x28, 0x1C);
+        Color eye = new Color(0x3B, 0x5A, 0x8C);
+        Color shirt = new Color(0x2E, 0x8B, 0x8B);
+        Color shirtDark = new Color(0x25, 0x74, 0x74);
+        Color pants = new Color(0x3B, 0x3B, 0x9E);
+        Color pantsDark = new Color(0x2F, 0x2F, 0x82);
+        Color shoe = new Color(0x4A, 0x4A, 0x55);
+        int arm = alexModel ? 3 : 4;
+
+        // 内层（官方布局）：只填需要的面，外层面留透明
+        paint(g, 0, 0, 8, 8, 8, hair, skinShade, skinShade, skinFace, skinShade, skinShade);           // 头
+        paint(g, 16, 16, 8, 4, 12, shirtDark, shirtDark, shirt, shirt, shirt, shirtDark);             // 身体
+        paint(g, 0, 16, 4, 4, 12, pants, shoe, pants, pants, pants, pants);                            // 右腿
+        paint(g, 16, 48, 4, 4, 12, pants, shoe, pants, pants, pants, pants);                           // 左腿
+        paint(g, 40, 16, arm, 4, 12, shirt, skinFace, shirt, shirt, shirt, shirt);                     // 右臂（底面=手掌）
+        paint(g, 32, 48, arm, 4, 12, shirt, skinFace, shirt, shirt, shirt, shirt);                     // 左臂
+
+        // 脸：(8,8) 8×8
+        g.setColor(hair);
+        g.fillRect(8, 8, 8, 2);
+        g.fillRect(8, 10, 1, 4);
+        g.fillRect(15, 10, 1, 4);
+        g.setColor(Color.WHITE);
+        g.fillRect(9, 12, 2, 1);
+        g.fillRect(13, 12, 2, 1);
+        g.setColor(eye);
+        g.fillRect(10, 12, 1, 1);
+        g.fillRect(13, 12, 1, 1);
+        g.setColor(new Color(0xB0, 0x74, 0x50));
+        g.fillRect(11, 13, 2, 1);
+        g.setColor(new Color(0x84, 0x53, 0x38));
+        g.fillRect(10, 15, 4, 1);
+        g.setColor(skinShade);
+        g.fillRect(12, 8, 1, 8);
+
+        // 外层：留空的帽子层（不要全填，否则会把脸糊成深棕），只加发梢
+        g.setColor(hair);
+        g.fillRect(40, 8, 8, 2);       // 帽子正面顶部
+        g.fillRect(32, 8, 8, 2);       // 帽子顶部
+        g.fillRect(48, 8, 8, 2);
+        g.setColor(new Color(0x2E, 0x8B, 0x8B, 150));
+        g.fillRect(20, 36, 8, 12);     // 外套正面半透明阴影
+        g.dispose();
+        return img;
+    }
+    /** 按盒子六个面填充（顺序：顶 / 底 / 右 / 前 / 左 / 后，与皮肤 UV 布局一致）。 */
+    private static void paint(Graphics2D g, int rx, int ry, int w, int d, int h,
+                              Color top, Color bottom, Color right, Color front, Color left, Color back) {
+        g.setColor(top);    g.fillRect(rx + d, ry, w, d);
+        g.setColor(bottom); g.fillRect(rx + d + w, ry, w, d);
+        g.setColor(right);  g.fillRect(rx, ry + d, d, h);
+        g.setColor(front);  g.fillRect(rx + d, ry + d, w, h);
+        g.setColor(left);   g.fillRect(rx + d + w, ry + d, d, h);
+        g.setColor(back);   g.fillRect(rx + d + w + d, ry + d, w, h);
+    }
+
     private static BufferedImage drawSteve() {
         BufferedImage img = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();

@@ -17,6 +17,8 @@ public final class LauncherFrame extends JFrame {
     private final AccountStore accounts=new AccountStore(home);
     private JPanel profileControl;
     private Appearance appearance=Appearance.load(home);
+    /** 主页上的皮肤玩偶（桌宠）。 */
+    private SkinDoll doll;
     private final WallpaperLibrary library=new WallpaperLibrary(home);
     private final WallpaperPlayer wallpaper=new WallpaperPlayer();
     private final WallpaperView backdrop=new WallpaperView(wallpaper,appearance,0);
@@ -84,7 +86,7 @@ public final class LauncherFrame extends JFrame {
         JPanel state=UiTheme.transparent(new BorderLayout(0,6));state.setPreferredSize(new Dimension(100,38));state.add(statusLabel,BorderLayout.CENTER);progress.setPreferredSize(new Dimension(100,5));progress.setVisible(false);state.add(progress,BorderLayout.SOUTH);d.gridx=2;d.weightx=0;dock.add(state,d);
         launchBtn.setPreferredSize(new Dimension(150,46));launchBtn.addActionListener(e->onLaunch());d.gridx=3;d.insets=new Insets(0,0,0,0);d.fill=GridBagConstraints.NONE;dock.add(launchBtn,d);
         b.gridx=0;b.gridy=1;b.weightx=1;b.fill=GridBagConstraints.HORIZONTAL;b.insets=new Insets(0,0,0,0);bottom.add(dock,b);homeView.add(bottom,BorderLayout.SOUTH);
-        homeView.add(announcement,BorderLayout.CENTER);pageHost.add(homeView,"home");root.add(pageHost,BorderLayout.CENTER);setContentPane(WindowChrome.content(this,root));
+        homeView.add(announcement,BorderLayout.CENTER);pageHost.add(homeView,"home");root.add(pageHost,BorderLayout.CENTER);setContentPane(WindowChrome.content(this,root));installDoll();
         versionBox.addActionListener(e->onVersionSelected());bindModDrop(getContentPane());WindowChrome.resize(this,getRootPane());refreshTheme();
     }
     private void bindModDrop(Component component){
@@ -173,7 +175,7 @@ public final class LauncherFrame extends JFrame {
         try{if(keepCurrent&&!accountCleared)accounts.remember(session);accounts.remember(selected);}catch(Exception e){showError("账号未保存",root(e));return;}
         session=selected;accountCleared=false;SessionStore.save(home,session);applySession();refreshAvatarAsync();statusLabel.setText(games.running()?"游戏运行中 · 账号已切换":"账号已切换");
     }
-    private void refreshAvatarAsync(){Session selected=session;if(selected==null){avatar.setImage(null);avatar.setLoading(false);return;}avatar.setImage(SkinFetcher.cached(selected,home));avatar.setLoading(true);new SwingWorker<BufferedImage,Void>(){
+    private void refreshAvatarAsync(){if(doll!=null)doll.reload(session);Session selected=session;if(selected==null){avatar.setImage(null);avatar.setLoading(false);return;}avatar.setImage(SkinFetcher.cached(selected,home));avatar.setLoading(true);new SwingWorker<BufferedImage,Void>(){
         @Override protected BufferedImage doInBackground(){return SkinFetcher.fetch(selected,home);}
         @Override protected void done(){if(disposed)return;try{if(session==selected){avatar.setImage(get());avatar.setLoading(false);}}catch(Exception ignored){if(session==selected)avatar.setLoading(false);}}
     }.execute();}
@@ -242,15 +244,62 @@ public final class LauncherFrame extends JFrame {
     }
     private boolean applyStyle(Appearance value){
         Appearance next=appearance.copy();next.theme=value.theme;next.uiTransparency=value.uiTransparency;
+        // 玩偶开关也由“风格”页控制，位置 / 朝向沿用当前值
+        boolean dollChanged=next.doll!=value.doll;next.doll=value.doll;
         try{next.save(home);}catch(Exception e){return false;}
-        appearance=next;UiTheme.set(next.theme);backdrop.options(next);updateTransparency();refreshTheme();return true;
+        appearance=next;UiTheme.set(next.theme);backdrop.options(next);updateTransparency();refreshTheme();
+        if(dollChanged)installDoll();
+        return true;
+    }
+    // ============================================================ 皮肤玩偶
+
+    private boolean dollResizeHooked;
+
+    /** 按设置创建 / 移除皮肤玩偶，并恢复上次的位置与朝向。 */
+    private void installDoll(){
+        if(disposed)return;
+        JLayeredPane layered=getRootPane().getLayeredPane();
+        if(doll!=null){layered.remove(doll);doll.stop();doll=null;}
+        if(!dollResizeHooked){dollResizeHooked=true;addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){clampDoll();}});}
+        if(!appearance.doll){layered.repaint();return;}
+        SkinDoll created=new SkinDoll(session,home,this::persistDoll);
+        created.restore(appearance.dollYaw,appearance.dollPitch,appearance.dollZoom/100.0);
+        created.setSize(created.getPreferredSize());
+        int x=appearance.dollX,y=appearance.dollY;
+        if(x<0||y<0){x=Math.max(12,layered.getWidth()-created.getWidth()-36);y=Math.max(12,layered.getHeight()-created.getHeight()-126);}
+        created.setLocation(Math.max(0,x),Math.max(0,y));
+        // 放在 DRAG_LAYER 之上：既压住页面内容，又能稳定收到鼠标事件
+        layered.add(created,Integer.valueOf(JLayeredPane.DRAG_LAYER));
+        layered.repaint();
+        doll=created;
+    }
+
+    /** 窗口尺寸变化后把玩偶拉回可视区域。 */
+    private void clampDoll(){
+        if(doll==null)return;
+        JLayeredPane layered=getRootPane().getLayeredPane();
+        int maxX=Math.max(0,layered.getWidth()-doll.getWidth()),maxY=Math.max(0,layered.getHeight()-doll.getHeight());
+        int x=Math.min(maxX,doll.getX()),y=Math.min(maxY,doll.getY());
+        if(x!=doll.getX()||y!=doll.getY())doll.setLocation(Math.max(0,x),Math.max(0,y));
+    }
+
+    /** 拖动 / 旋转 / 缩放后保存位置，不触发整体外观刷新。 */
+    private void persistDoll(){
+        if(doll==null)return;
+        Appearance value=appearance.copy();
+        value.dollX=doll.getX();value.dollY=doll.getY();
+        value.dollYaw=Math.round(doll.yaw());value.dollPitch=Math.round(doll.pitch());
+        value.dollZoom=(int)Math.round(doll.zoom()*100);
+        appearance.dollX=value.dollX;appearance.dollY=value.dollY;appearance.dollYaw=value.dollYaw;
+        appearance.dollPitch=value.dollPitch;appearance.dollZoom=value.dollZoom;
+        try{value.save(home);}catch(Exception ignored){}
     }
     private void syncPlayback(){
         boolean minimized=(getExtendedState()&ICONIFIED)!=0;boolean game=games.running();
         wallpaper.setPaused(minimized||appearanceVisible||styleVisible||downloadsVisible||(appearance.pauseWithGame&&(game||busy)));
         if(appearancePanel!=null)appearancePanel.setActive(appearanceVisible&&!minimized&&!(appearance.pauseWithGame&&game));
     }
-    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();}
+    private void disposeResources(){if(disposed)return;disposed=true;announcement.close();if(poller!=null)poller.stop();wallpaper.close();if(appearancePanel!=null)appearancePanel.close();if(downloadCenter!=null)downloadCenter.close();if(doll!=null){doll.stop();doll=null;}}
     @Override public void dispose(){disposeResources();super.dispose();}
     private void showError(String title,String body){WindowChrome.prompt(this,title,body,false);}
     private static String root(Throwable e){while(e.getCause()!=null&&e.getCause()!=e)e=e.getCause();return e.getMessage()==null?"操作未完成，请重试。":e.getMessage();}
