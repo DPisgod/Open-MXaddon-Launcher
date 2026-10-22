@@ -89,15 +89,35 @@ public final class LauncherFrame extends JFrame {
     }
     private void bindModDrop(Component component){
         if(component instanceof JComponent target)target.setTransferHandler(new TransferHandler(){
-            @Override public boolean canImport(TransferSupport support){return !busy&&!games.running()&&support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);}
-            @Override public boolean importData(TransferSupport support){if(!canImport(support))return false;try{Object value=support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);if(value instanceof List<?> files){List<Path> paths=new java.util.ArrayList<>();for(Object file:files)if(file instanceof File f)paths.add(f.toPath());SwingUtilities.invokeLater(()->importDroppedMods(paths));return true;}}catch(Exception e){showError("无法添加 Mod",root(e));}return false;}
+            @Override public boolean canImport(TransferSupport support){return canAcceptDrops()&&support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);}
+            @Override public boolean importData(TransferSupport support){if(!canImport(support))return false;try{Object value=support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);if(value instanceof List<?> files){List<Path> paths=new java.util.ArrayList<>();for(Object file:files)if(file instanceof File f)paths.add(f.toPath());SwingUtilities.invokeLater(()->importDroppedFiles(paths));return true;}}catch(Exception e){showError("无法导入文件",root(e));}return false;}
         });
         if(component instanceof Container container)for(Component child:container.getComponents())bindModDrop(child);
     }
+    private boolean canAcceptDrops(){return !busy&&!games.running()&&(downloadCenter==null||!downloadCenter.busy());}
+    void importDroppedFiles(List<Path> files){
+        if(!canAcceptDrops()||files.isEmpty())return;
+        boolean jars=files.stream().allMatch(p->p.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".jar"));
+        if(jars){importDroppedMods(files);return;}
+        Path archive=files.get(0);String extension=archive.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+        if(files.size()!=1||(!extension.endsWith(".zip")&&!extension.endsWith(".mrpack"))){showError("无法导入文件","请拖入一个整合包 ZIP / MRPACK，或一组 Mod JAR 文件。");return;}
+        setBusy(true,"正在识别整合包…");new SwingWorker<ModpackInstaller.Pack,Void>(){
+            @Override protected ModpackInstaller.Pack doInBackground()throws Exception{return ModpackInstaller.forImport(archive,gameRoot);}
+            @Override protected void done(){if(disposed)return;try{
+                var pack=get();AutoInstallDialog dialog=new AutoInstallDialog(LauncherFrame.this,archive,gameRoot,pack,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);});
+                statusLabel.setText("整合包："+pack.options().id());dialog.setVisible(true);setBusy(false,dialog.installed()?"整合包安装完成":"未安装整合包");
+            }catch(Exception failure){setBusy(false,"整合包未安装");showError("无法导入整合包",root(failure));}}
+        }.execute();
+    }
     void importDroppedMods(List<Path> files){
-        if(busy||games.running()||files.isEmpty())return;
+        if(!canAcceptDrops()||files.isEmpty())return;
         if(selectedVersion.isEmpty()){showError("请先添加游戏版本","在版本列表中选择“添加版本”，安装完成后再拖入 Mod。");return;}
-        try{VersionSettingsDialog dialog=new VersionSettingsDialog(this,gameRoot,selectedVersion);dialog.importFiles(files);dialog.setVisible(true);}catch(Exception e){showError("无法添加 Mod",root(e));}
+        String version=selectedVersion;List<Path> input=List.copyOf(files);setBusy(true,"正在添加 Mod…");
+        new SwingWorker<Integer,Void>(){
+            private final List<String> failures=new java.util.ArrayList<>();
+            @Override protected Integer doInBackground()throws Exception{ModManager mods=new ModManager(VersionInstaller.gameDirectory(gameRoot,version));int count=0;for(Path file:input)try{mods.add(file);count++;}catch(Exception failure){failures.add(file.getFileName()+"："+root(failure));}return count;}
+            @Override protected void done(){if(disposed)return;try{int count=get();setBusy(false,"已向 "+version+" 添加 "+count+" 个 Mod");if(!failures.isEmpty())showError("部分 Mod 未添加",String.join("\n",failures));}catch(Exception failure){setBusy(false,"未添加 Mod");showError("无法添加 Mod",root(failure));}}
+        }.execute();
     }
     private void bootstrap(){
         announcement.checkOnStartup();

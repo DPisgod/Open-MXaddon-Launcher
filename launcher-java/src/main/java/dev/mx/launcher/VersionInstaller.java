@@ -31,6 +31,7 @@ final class VersionInstaller {
     VersionInstaller(Path gameRoot,Consumer<Progress> progress){this(gameRoot,progress,VersionInstaller::open);}
     VersionInstaller(Path gameRoot,Consumer<Progress> progress,ConnectionFactory connections){root=gameRoot.toAbsolutePath().normalize();cache=root.resolve(".mx-downloads");this.progress=progress;this.connections=connections;}
     void cancel(){cancelled.set(true);for(Future<?> task:pending)task.cancel(true);}
+    void report(Progress update){progress.accept(update);}
     private void check()throws InterruptedIOException{if(cancelled.get()||Thread.currentThread().isInterrupted())throw new InterruptedIOException("安装已取消");}
 
     String install()throws Exception{
