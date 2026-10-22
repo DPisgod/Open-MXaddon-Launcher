@@ -18,6 +18,9 @@ final class UiTheme {
     private static Palette current=LIGHT;
     private static String style="light";
     private static final Palette CYBER_DARK=new Palette(true,new Color(0x090E1D),new Color(0x111B32),new Color(0xEDF6FF),new Color(0x9DADCA),new Color(0x334568),new Color(0x39DEFF),new Color(0x071426));
+    private static final Palette CHINA_RED=new Palette(false,new Color(0xF8EEE8),new Color(0xFFF8F1),new Color(0x4A151B),new Color(0x936055),new Color(0xE5C6AA),new Color(0xB91C2B),new Color(0xFFF6E0));
+    private static final Palette SAKURA=new Palette(false,new Color(0xFFF0F5),new Color(0xFFF8FC),new Color(0x5D344B),new Color(0x8F627C),new Color(0xF0CDDF),new Color(0xC83F7D),Color.WHITE);
+    private static final Palette PURPLE=new Palette(true,new Color(0x21152F),new Color(0x352244),new Color(0xF6EBFF),new Color(0xC2A5D6),new Color(0x604775),new Color(0xD19AFF),new Color(0x2E1248));
     static String style(){return style;}
     static boolean cyber(){return "cyber".equals(style);}
     private static boolean keyboardFocus;
@@ -31,7 +34,11 @@ final class UiTheme {
     }
     static boolean showFocus(Component component){return keyboardFocus&&component.hasFocus();}
     static Palette p(){return current;}
-    static boolean set(String value){style="cyber".equals(value)?"cyber":("dark".equals(value)||("system".equals(value)&&systemDark()))?"dark":"light";Palette next=cyber()?CYBER_DARK:"dark".equals(style)?DARK:LIGHT;boolean changed=current!=next;current=next;return changed;}
+    static boolean set(String value){
+        style=value==null?"light":"system".equals(value)?(systemDark()?"dark":"light"):value;
+        Palette next=switch(style){case "dark"->DARK;case "cyber"->CYBER_DARK;case "china-red"->CHINA_RED;case "sakura"->SAKURA;case "purple"->PURPLE;default->{style="light";yield LIGHT;}};
+        boolean changed=current!=next;current=next;return changed;
+    }
     static boolean systemDark(){
         try{return Advapi32Util.registryGetIntValue(WinReg.HKEY_CURRENT_USER,"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize","AppsUseLightTheme")==0;}
         catch(Throwable ignored){return false;}
@@ -50,12 +57,18 @@ final class UiTheme {
         if(c instanceof JList<?> list){list.setBackground(p().surface());list.setForeground(p().text());list.setSelectionBackground(p().line());list.setSelectionForeground(p().text());}
         if(c instanceof JTable table){table.setBackground(p().surface());table.setForeground(p().text());table.setGridColor(p().line());table.setSelectionBackground(p().line());table.setSelectionForeground(p().text());}
         if(c instanceof JCheckBox b){b.setForeground(p().text());b.setBackground(p().surface());}
+        if(c instanceof JRadioButton b){b.setForeground(p().text());b.setBackground(p().surface());}
         if(c instanceof JSlider s){s.setForeground(p().accent());s.setBackground(p().surface());}
         if(c instanceof Container parent)for(Component child:parent.getComponents())refresh(child);
         c.repaint();
     }
     static JLabel muted(String text,int size){JLabel l=label(text,size,false);l.putClientProperty("muted",true);l.setForeground(p().muted());return l;}
     static JPanel transparent(LayoutManager layout){JPanel p=new JPanel(layout);p.setOpaque(false);return p;}
+    static void radio(JRadioButton radio){radio.setOpaque(false);radio.setFont(font(14,false));radio.setForeground(p().text());radio.setFocusPainted(false);radio.setIconTextGap(9);radio.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));radio.setIcon(new RadioIcon(false));radio.setSelectedIcon(new RadioIcon(true));}
+    private record RadioIcon(boolean selected) implements Icon{
+        public int getIconWidth(){return 22;}public int getIconHeight(){return 22;}
+        public void paintIcon(Component c,Graphics graphics,int x,int y){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setStroke(new BasicStroke(1.5f));g.setColor(selected?p().accent():p().muted());g.drawOval(x+3,y+3,15,15);if(selected)g.fillOval(x+7,y+7,7,7);if(showFocus(c)){g.setColor(p().accent());g.drawOval(x,y,21,21);}g.dispose();}
+    }
     static void slider(JSlider slider){slider.setOpaque(false);slider.setUI(new BasicSliderUI(slider){
         @Override protected TrackListener createTrackListener(JSlider value){return new TrackListener(){
             private boolean pressed;private int offset;
@@ -118,7 +131,7 @@ final class UiTheme {
             int fill=(int)Math.round(width*(isShowing()?displayed:target())),left=0;
             if(isIndeterminate()){fill=Math.max(height,width/4);double phase=(System.nanoTime()/1_000_000L%1400)/1400.0;left=(int)Math.round((width-fill)*(1-Math.cos(phase*2*Math.PI))/2);}
             else if(!getComponentOrientation().isLeftToRight())left=width-fill;
-            if(fill>0){g.setPaint(new GradientPaint(left,0,p().dark()?new Color(0x729EFF):p().accent(),left+Math.max(1,fill),0,p().dark()?p().accent():new Color(0x6898FA)));g.fillRoundRect(left,top,fill,height,height,height);}g.dispose();
+            if(fill>0){g.setPaint(new GradientPaint(left,0,p().dark()?p().accent().darker():p().accent(),left+Math.max(1,fill),0,p().dark()?p().accent():p().accent().brighter()));g.fillRoundRect(left,top,fill,height,height,height);}g.dispose();
         }
     }
     static final class Button extends JButton {

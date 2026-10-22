@@ -8,11 +8,11 @@ import java.util.function.Predicate;
 
 /** Name-only color presets; every preset keeps the same rounded components. */
 final class StylePanel extends JPanel {
-    private static final String[] PRESETS={"light","dark","cyber"};
+    private static final String[] PRESETS={"light","dark","cyber","china-red","sakura","purple"};
     private Appearance saved;
     private final Predicate<Appearance> apply;
     private final JLabel message=UiTheme.muted("选择后立即生效并保存。",12);
-    private final JComboBox<String> styles=new JComboBox<>(new String[]{"浅色","深色","霓虹赛博"});
+    private final JRadioButton[] styles=new JRadioButton[PRESETS.length];
     private boolean updating;
 
     StylePanel(Appearance appearance,Predicate<Appearance> apply,IntConsumer previewTransparency,Runnable back,Runnable wallpapers){
@@ -21,8 +21,12 @@ final class StylePanel extends JPanel {
         UiTheme.Button home=new UiTheme.Button("返回主页","home",UiTheme.Tone.SURFACE);home.setPreferredSize(new Dimension(102,38));home.addActionListener(e->back.run());JPanel returnArea=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,0,0));returnArea.add(home);heading.add(returnArea,BorderLayout.EAST);add(heading,BorderLayout.NORTH);
 
         UiTheme.Surface settings=new UiTheme.Surface(new GridBagLayout(),22);settings.setBorder(new EmptyBorder(22,24,22,24));GridBagConstraints c=new GridBagConstraints();c.gridx=0;c.gridy=0;c.anchor=GridBagConstraints.WEST;c.insets=new Insets(0,0,22,24);settings.add(UiTheme.label("界面风格",15,true),c);
-        UiTheme.combo(styles);styles.setFocusable(true);styles.setName("appearanceStyle");styles.getAccessibleContext().setAccessibleName("界面风格");styles.setPreferredSize(new Dimension(280,38));styles.setSelectedIndex(index(saved.theme));JPanel choice=UiTheme.transparent(new FlowLayout(FlowLayout.LEFT,0,0));choice.add(styles);c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;settings.add(choice,c);
-        styles.addActionListener(e->{if(updating)return;Appearance value=saved.copy();value.theme=PRESETS[styles.getSelectedIndex()];if(!save(value)){updating=true;styles.setSelectedIndex(index(saved.theme));updating=false;}});
+        JPanel choice=UiTheme.transparent(new GridLayout(0,3,16,10));choice.setName("appearanceStyles");choice.getAccessibleContext().setAccessibleName("界面风格");ButtonGroup group=new ButtonGroup();String[] names={"浅色","深色","霓虹赛博","中国红","樱花粉","基佬紫"};
+        for(int i=0;i<PRESETS.length;i++){
+            final String preset=PRESETS[i];JRadioButton option=new JRadioButton(names[i]);styles[i]=option;option.setName("appearanceStyle-"+preset);UiTheme.radio(option);option.setPreferredSize(new Dimension(140,36));group.add(option);choice.add(option);
+            option.addActionListener(e->{if(updating||saved.theme.equals(preset))return;Appearance value=saved.copy();value.theme=preset;if(!save(value)){updating=true;try{styles[index(saved.theme)].setSelected(true);}finally{updating=false;}}});
+        }
+        styles[index(saved.theme)].setSelected(true);c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;settings.add(choice,c);
 
         c.gridx=0;c.gridy=1;c.weightx=0;c.fill=GridBagConstraints.NONE;c.insets=new Insets(0,0,12,24);settings.add(UiTheme.label("UI 透明度",15,true),c);
         JSlider transparency=new JSlider(0,100,saved.uiTransparency);transparency.setName("uiTransparency");transparency.setToolTipText("仅调整主页顶栏和启动栏背景；0% 不透明，100% 完全透明");UiTheme.slider(transparency);JLabel percent=UiTheme.label(saved.uiTransparency+"%",13,true);percent.setPreferredSize(new Dimension(44,30));JPanel slider=UiTheme.transparent(new BorderLayout(12,0));slider.add(transparency);slider.add(percent,BorderLayout.EAST);c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;settings.add(slider,c);

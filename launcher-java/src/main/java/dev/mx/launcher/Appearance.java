@@ -22,7 +22,7 @@ final class Appearance {
         // Import the previous two-axis settings into one color preset.
         String previous=p.getProperty("theme","light");
         a.theme="cyber".equals(p.getProperty("buttonStyle"))?"cyber":
-                "system".equals(previous)?(UiTheme.systemDark()?"dark":"light"):oneOf(previous,"light","dark","cyber");
+                "system".equals(previous)?(UiTheme.systemDark()?"dark":"light"):oneOf(previous,"light","dark","cyber","china-red","sakura","purple");
         a.fit=oneOf(p.getProperty("fit"),"cover","contain","stretch");
         a.wallpaper=p.getProperty("wallpaper","");
         a.blur=number(p.getProperty("blur"),0,0,100);

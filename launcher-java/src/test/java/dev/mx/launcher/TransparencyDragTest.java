@@ -21,8 +21,8 @@ public final class TransparencyDragTest {
             edt(()->{frame[0]=new LauncherFrame(false);frame[0].setVisible(true);frame[0].showStyles();});
             Thread.sleep(300);
             edt(()->{try{
-                for(int preset=0;preset<3;preset++){
-                    ((JComboBox<?>)AccountUiBehaviorTest.findNamed(frame[0],"appearanceStyle")).setSelectedIndex(preset);
+                for(String preset:new String[]{"light","dark","cyber","china-red","sakura","purple"}){
+                    ((JRadioButton)AccountUiBehaviorTest.findNamed(frame[0],"appearanceStyle-"+preset)).doClick(0);
                     JSlider slider=(JSlider)AccountUiBehaviorTest.findNamed(frame[0],"uiTransparency");slider.setValue(0);
                     byte[] before=Files.readAllBytes(preferences);
                     UiTheme.Surface header=(UiTheme.Surface)AccountUiBehaviorTest.findNamed(frame[0],"mainHeader");
@@ -54,7 +54,7 @@ public final class TransparencyDragTest {
                 check(((UiTheme.Surface)AccountUiBehaviorTest.findNamed(frame[0],"mainHeader")).transparency==committed,"Save failure left uncommitted opacity visible");
                 Files.delete(preferences);
             }catch(Exception e){throw new RuntimeException(e);}});
-            System.out.println("LIVE_POINTER_TRANSPARENCY_THREE_PALETTES_NO_DRAG_WRITES_RELEASE_SAVE_REOPEN_WALLPAPER_INDEPENDENCE_FAILURE_ROLLBACK_OK");
+            System.out.println("LIVE_POINTER_TRANSPARENCY_SIX_PALETTES_NO_DRAG_WRITES_RELEASE_SAVE_REOPEN_WALLPAPER_INDEPENDENCE_FAILURE_ROLLBACK_OK");
         }finally{edt(()->{if(frame[0]!=null)frame[0].dispose();});}
         System.exit(0);
     }
