@@ -132,13 +132,20 @@ if (Test-Path (Join-Path $Here "shell\使用说明.txt")) {
 if (-not $SkipJre) {
     Write-Host "  生成精简 JRE ..."
     & "$JDK\bin\jlink.exe" `
-        --add-modules java.base,java.desktop,java.logging,java.prefs,jdk.unsupported,java.management,jdk.crypto.ec `
+        --add-modules java.base,java.desktop,java.logging,java.prefs,jdk.unsupported,java.management,jdk.management,jdk.crypto.ec `
         --strip-debug --no-header-files --no-man-pages --compress=zip-6 `
         --output "$dist\runtime" 2>&1 | Out-Null
     if (Test-Path "$dist\runtime\bin\javaw.exe") {
         $jreMb = [math]::Round((Get-ChildItem "$dist\runtime" -Recurse -File |
                  Measure-Object -Property Length -Sum).Sum / 1MB, 1)
         Write-Host "  自带 JRE 就绪: $jreMb MB"
+        $runtimeJava = Join-Path $dist 'runtime\bin\java.exe'
+        $runtimeModules = @(& $runtimeJava --list-modules | ForEach-Object { ($_ -split '@')[0] })
+        if ($LASTEXITCODE -ne 0) { throw '无法验证自带 JRE 模块' }
+        foreach ($requiredModule in @('java.desktop','java.management','jdk.management','jdk.crypto.ec','jdk.unsupported')) {
+            if ($runtimeModules -notcontains $requiredModule) { throw "自带 JRE 缺少必需模块：$requiredModule" }
+        }
+        Write-Host '  自带 JRE 模块校验通过（含物理内存检测）'
     } else {
         throw "jlink 失败：未生成自带 JRE"
     }

@@ -13,3 +13,9 @@ Windows 默认定时精度会使 16 ms Swing 定时器降到约 30 次/秒。仅
 `MotionAndControlsTest` 使用真实资源页任务状态与临时数据，验证浅色、深色、霓虹赛博在禁用/恢复时背景不变，覆盖编辑框、滑块直接定位与继续拖动、反向/RTL、确定进度平滑且不修改模型值、进度隐藏后停止、快速页面切换释放快照、窗口内容入场、普通不透明 HWND 以及高精度定时请求释放。
 
 `MotionPreview` 从生产界面录制 60 fps 的离线演示视频，只用临时目录和示例版本，不包含用户账号、存档或真实下载。预览包默认霓虹赛博，可自行在个性化中切换。
+
+## 打包运行时修复
+
+用户日志显示自带 Java 缺少 jdk.management，SettingsDialog 创建 MemoryPanel 时抛出 NoClassDefFoundError: com/sun/management/OperatingSystemMXBean。完整开发 JDK 含此模块，原有测试没有覆盖这个分发差异。
+
+jlink 现显式包含 jdk.management，并在构建时检查必需模块。BundledRuntimeSettingsTest 必须使用 dist/runtime/bin/java.exe 运行，通过实际右上角齿轮按钮分别从主页、下载、个性化打开模态设置窗口，验证真实物理内存读取、自定义滑块以及保存到本机配置。该测试使用独立临时数据，不修改用户配置。
