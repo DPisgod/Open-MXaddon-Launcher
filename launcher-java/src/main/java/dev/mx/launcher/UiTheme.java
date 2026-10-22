@@ -42,11 +42,11 @@ final class UiTheme {
     static void quality(Graphics2D g){g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,RenderingHints.VALUE_TEXT_ANTIALIAS_ON);g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,RenderingHints.VALUE_INTERPOLATION_BILINEAR);}
     static void refresh(Component c){
         if(c instanceof JPanel panel&&!(panel instanceof Surface)&&panel.isOpaque())panel.setBackground(p().surface());
-        if(c instanceof javax.swing.text.JTextComponent text){text.setBackground(p().background());text.setForeground(p().text());text.setCaretColor(p().accent());}
+        if(c instanceof javax.swing.text.JTextComponent text){text.setBackground(SwingUtilities.getAncestorOfClass(JComboBox.class,text)!=null?p().surface():p().background());text.setForeground(p().text());text.setDisabledTextColor(p().muted());text.setCaretColor(p().accent());}
         if(c instanceof JButton button&&!(button instanceof Button)){button.setBackground(p().accent());button.setForeground(p().accentText());}
         if(c instanceof JLabel l)l.setForeground(Boolean.TRUE.equals(l.getClientProperty("muted"))?p().muted():p().text());
         if(c instanceof JScrollPane s){s.getViewport().setBackground(p().background());s.setBackground(p().background());}
-        if(c instanceof JComboBox<?> box){box.setBackground(p().surface());box.setForeground(p().text());}
+        if(c instanceof JComboBox<?> box){box.setBackground(p().surface());box.setForeground(p().text());themeEditor(box);}
         if(c instanceof JList<?> list){list.setBackground(p().surface());list.setForeground(p().text());list.setSelectionBackground(p().line());list.setSelectionForeground(p().text());}
         if(c instanceof JTable table){table.setBackground(p().surface());table.setForeground(p().text());table.setGridColor(p().line());table.setSelectionBackground(p().line());table.setSelectionForeground(p().text());}
         if(c instanceof JCheckBox b){b.setForeground(p().text());b.setBackground(p().surface());}
@@ -57,6 +57,13 @@ final class UiTheme {
     static JLabel muted(String text,int size){JLabel l=label(text,size,false);l.putClientProperty("muted",true);l.setForeground(p().muted());return l;}
     static JPanel transparent(LayoutManager layout){JPanel p=new JPanel(layout);p.setOpaque(false);return p;}
     static void slider(JSlider slider){slider.setOpaque(false);slider.setUI(new BasicSliderUI(slider){
+        @Override protected TrackListener createTrackListener(JSlider value){return new TrackListener(){
+            private boolean pressed;private int offset;
+            @Override public void mousePressed(MouseEvent e){if(!slider.isEnabled()||!SwingUtilities.isLeftMouseButton(e))return;slider.requestFocusInWindow();pressed=true;boolean horizontal=slider.getOrientation()==JSlider.HORIZONTAL;offset=thumbRect.contains(e.getPoint())?(horizontal?e.getX()-thumbRect.x-thumbRect.width/2:e.getY()-thumbRect.y-thumbRect.height/2):0;slider.setValueIsAdjusting(true);move(e);}
+            @Override public void mouseDragged(MouseEvent e){if(pressed&&slider.isEnabled())move(e);}
+            @Override public void mouseReleased(MouseEvent e){if(pressed){pressed=false;slider.setValueIsAdjusting(false);}}
+            private void move(MouseEvent e){slider.setValue(slider.getOrientation()==JSlider.HORIZONTAL?valueForXPosition(e.getX()-offset):valueForYPosition(e.getY()-offset));}
+        };}
         @Override protected Dimension getThumbSize(){return new Dimension(14,14);}
         @Override public void paintTrack(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);int y=trackRect.y+trackRect.height/2-2;g.setColor(p().line());g.fillRoundRect(trackRect.x,y,trackRect.width,4,4,4);g.setColor(slider.isEnabled()?p().accent():alpha(p().muted(),90));g.fillRoundRect(trackRect.x,y,Math.max(0,thumbRect.x+thumbRect.width/2-trackRect.x),4,4,4);g.dispose();}
         @Override public void paintThumb(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();quality(g);g.setColor(slider.isEnabled()?p().accent():p().line());g.fillOval(thumbRect.x,thumbRect.y,14,14);g.setColor(p().surface());g.fillOval(thumbRect.x+4,thumbRect.y+4,6,6);g.dispose();}
@@ -74,21 +81,41 @@ final class UiTheme {
     }
     static void combo(JComboBox<?> box){
         box.setFont(font(13,false));box.setBackground(p().surface());box.setForeground(p().text());box.setFocusable(false);
-        box.setUI(new BasicComboBoxUI(){@Override protected JButton createArrowButton(){return new Button("","chevron",Tone.PLAIN);}});
+        box.setUI(new BasicComboBoxUI(){
+            @Override protected JButton createArrowButton(){return new Button("","chevron",Tone.PLAIN);}
+            @Override public void paintCurrentValueBackground(Graphics g,Rectangle bounds,boolean focus){g.setColor(p().surface());g.fillRect(bounds.x,bounds.y,bounds.width,bounds.height);}
+            @Override public void paintCurrentValue(Graphics g,Rectangle bounds,boolean focus){
+                // BasicComboBoxUI otherwise replaces renderer colors with native disabled white.
+                Component value=comboBox.getRenderer().getListCellRendererComponent(listBox,comboBox.getSelectedItem(),-1,false,false);
+                value.setFont(comboBox.getFont());value.setEnabled(true);value.setBackground(p().surface());value.setForeground(comboBox.isEnabled()?p().text():p().muted());
+                currentValuePane.paintComponent(g,value,comboBox,bounds.x,bounds.y,bounds.width,bounds.height,value instanceof JPanel);
+            }
+        });
+        box.addPropertyChangeListener(e->{if("enabled".equals(e.getPropertyName())||"editable".equals(e.getPropertyName())||"editor".equals(e.getPropertyName()))themeEditor(box);});
         box.setRenderer((list,value,index,selected,focus)->{
             JLabel l=label(value==null?"":value.toString(),13,false);l.setBorder(new EmptyBorder(9,12,9,12));l.setOpaque(true);
             l.setBackground(selected&&index>=0?p().accent():p().surface());l.setForeground(selected&&index>=0?p().accentText():p().text());return l;
         });
         box.setBorder(new AbstractBorder(){@Override public Insets getBorderInsets(Component c){return new Insets(2,3,2,3);}@Override public void paintBorder(Component c,Graphics g,int x,int y,int w,int h){Graphics2D q=(Graphics2D)g.create();quality(q);q.setColor(cyber()?alpha(p().accent(),130):p().line());q.drawRoundRect(x,y,w-1,h-1,12,12);q.dispose();}});
     }
+    private static void themeEditor(JComboBox<?> box){if(box.getEditor()!=null){Component editor=box.getEditor().getEditorComponent();editor.setBackground(p().surface());editor.setForeground(p().text());if(editor instanceof javax.swing.text.JTextComponent text){text.setDisabledTextColor(p().muted());text.setCaretColor(p().accent());}}}
     enum Tone{PLAIN,SURFACE,PRIMARY,NAV}
     /** Paint every pixel ourselves: Windows' native progress painter ignores dark theme colors. */
     static final class ProgressBar extends JProgressBar {
-        ProgressBar(){super(0,1000);setOpaque(false);setBorderPainted(false);setUI(new javax.swing.plaf.basic.BasicProgressBarUI(){@Override protected void setAnimationIndex(int index){super.setAnimationIndex(index);progressBar.repaint();}});}
+        private final Timer ticker=new UiMotion.FrameTimer(16,e->tick());
+        private double displayed;
+        private long lastTick;
+        ProgressBar(){super(0,1000);setOpaque(false);setBorderPainted(false);ticker.setCoalesce(true);setUI(new javax.swing.plaf.basic.BasicProgressBarUI(){@Override protected void startAnimationTimer(){}@Override protected void stopAnimationTimer(){}});addChangeListener(e->changed());addPropertyChangeListener("indeterminate",e->changed());addHierarchyListener(e->{if((e.getChangeFlags()&HierarchyEvent.SHOWING_CHANGED)!=0)changed();});}
+        private double target(){double value=getPercentComplete();return Double.isFinite(value)?Math.max(0,Math.min(1,value)):0;}
+        private void changed(){double target=target();if(!isShowing()){displayed=target;ticker.stop();}else{if(target<displayed)displayed=target;start();}repaint();}
+        private void start(){if(!ticker.isRunning()&&UiMotion.visible(this)&&(isIndeterminate()||Math.abs(displayed-target())>.0005)){lastTick=System.nanoTime();ticker.start();}}
+        private void tick(){if(!UiMotion.visible(this)){ticker.stop();return;}long now=System.nanoTime();double elapsed=Math.min(100,(now-lastTick)/1_000_000.0);lastTick=now;if(!isIndeterminate()){double target=target();displayed=target<displayed?target:displayed+(target-displayed)*(1-Math.exp(-elapsed/45));if(Math.abs(displayed-target)<.0005){displayed=target;ticker.stop();}}repaint();}
+        @Override public void removeNotify(){ticker.stop();super.removeNotify();}
         @Override protected void paintComponent(Graphics graphics){
+            start();
             Graphics2D g=(Graphics2D)graphics.create();quality(g);int width=getWidth(),height=Math.min(8,getHeight()),top=(getHeight()-height)/2;if(width<=0||height<=0){g.dispose();return;}
             RoundRectangle2D track=new RoundRectangle2D.Double(0,top,width,height,height,height);g.setColor(p().line());g.fill(track);g.clip(track);
-            int fill=(int)Math.round(width*Math.max(0,Math.min(1,getPercentComplete()))),left=0;
+            int fill=(int)Math.round(width*(isShowing()?displayed:target())),left=0;
             if(isIndeterminate()){fill=Math.max(height,width/4);double phase=(System.nanoTime()/1_000_000L%1400)/1400.0;left=(int)Math.round((width-fill)*(1-Math.cos(phase*2*Math.PI))/2);}
             else if(!getComponentOrientation().isLeftToRight())left=width-fill;
             if(fill>0){g.setPaint(new GradientPaint(left,0,p().dark()?new Color(0x729EFF):p().accent(),left+Math.max(1,fill),0,p().dark()?p().accent():new Color(0x6898FA)));g.fillRoundRect(left,top,fill,height,height,height);}g.dispose();

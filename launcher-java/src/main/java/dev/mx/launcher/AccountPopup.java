@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 /** Upward picker with distinct, keyboard-accessible switch and delete buttons. */
 final class AccountPopup extends JPopupMenu {
     private JButton initialFocus;
+    private final UiMotion.Reveal reveal=new UiMotion.Reveal(this);
 
     AccountPopup(Path home,List<Session> accounts,Session current,Consumer<Session> select,Consumer<Session> remove,Consumer<Session> configureSkin,Runnable add) {
         setUI(new BasicPopupMenuUI());setOpaque(true);
@@ -50,6 +51,8 @@ final class AccountPopup extends JPopupMenu {
 
     void showAbove(JComponent anchor){show(anchor,0,-getPreferredSize().height-10);initialFocus.requestFocusInWindow();}
     @Override protected void paintComponent(Graphics graphics){graphics.setColor(UiTheme.p().surface());graphics.fillRect(0,0,getWidth(),getHeight());}
+
+    @Override protected void paintChildren(Graphics original){Graphics2D g=reveal.graphics(original);super.paintChildren(g);g.dispose();}
 
     private static final class AccountRows extends JPanel implements Scrollable {
         AccountRows(){setOpaque(false);setLayout(new BoxLayout(this,BoxLayout.Y_AXIS));}

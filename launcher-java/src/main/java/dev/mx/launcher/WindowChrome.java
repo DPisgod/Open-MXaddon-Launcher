@@ -66,7 +66,7 @@ final class WindowChrome {
         if(!System.getProperty("os.name","").startsWith("Windows"))return false;
         try{var handle=new com.sun.jna.platform.win32.WinDef.HWND(com.sun.jna.Native.getComponentPointer(window));return Dwm.INSTANCE.DwmSetWindowAttribute(handle,33,new int[]{preference},4)==0;}catch(Throwable unavailable){return false;}
     }
-    static Container content(Window window,Container child){return child;}
+    static Container content(Window window,Container child){return UiMotion.entrance(child);}
     static JPanel controls(Window window,boolean full){
         JPanel controls=UiTheme.transparent(new FlowLayout(FlowLayout.RIGHT,2,0));
         if(full&&window instanceof JFrame frame){

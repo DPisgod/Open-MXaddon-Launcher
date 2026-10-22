@@ -24,7 +24,7 @@ public final class LauncherFrame extends JFrame {
     private final AnnouncementOverlay announcement=new AnnouncementOverlay(home);
     private final java.util.List<UiTheme.Surface> wallpaperSurfaces=new java.util.ArrayList<>();
     private final CardLayout pages=new CardLayout();
-    private final JPanel pageHost=UiTheme.transparent(pages);
+    private final UiMotion.Pages pageHost=new UiMotion.Pages(pages);
     private AppearancePanel appearancePanel;
     private StylePanel stylePanel;
     private boolean styleVisible;
@@ -122,7 +122,7 @@ public final class LauncherFrame extends JFrame {
     void openDownloads(){
         if(busy||games.running()){showError("请先退出游戏","退出游戏后可下载并安装资源。");return;}
         if(downloadCenter==null){downloadCenter=new DownloadCenterPanel(this,gameRoot,selectedVersion,id->{selectedVersion=id;refreshVersions();Settings settings=Settings.load(home);settings.lastVersion=id;settings.save(home);},network);pageHost.add(downloadCenter,"downloads");}
-        downloadCenter.selectInstance(selectedVersion);appearanceVisible=false;styleVisible=false;downloadsVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"downloads");syncPlayback();refreshTheme();
+        downloadCenter.selectInstance(selectedVersion);appearanceVisible=false;styleVisible=false;downloadsVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);pageHost.transition(()->pages.show(pageHost,"downloads"));syncPlayback();refreshTheme();
     }
     private void versionSettings(){if(busy)return;if(games.running()){showError("请先退出游戏","所有客户端退出后可修改此版本的 Mod。");return;}if(selectedVersion.isEmpty()){addVersion();return;}try{new VersionSettingsDialog(this,gameRoot,selectedVersion).setVisible(true);}catch(Exception e){showError("无法打开版本设置",root(e));}}
     private void updateLoader(){
@@ -202,11 +202,11 @@ public final class LauncherFrame extends JFrame {
     }
     private void updateTransparency(){for(UiTheme.Surface surface:wallpaperSurfaces){surface.transparency=appearance.uiTransparency;surface.repaint();}}
     private interface Dwm extends com.sun.jna.Library{Dwm INSTANCE=com.sun.jna.Native.load("dwmapi",Dwm.class);int DwmSetWindowAttribute(com.sun.jna.platform.win32.WinDef.HWND hwnd,int attribute,int[] value,int size);}
-    private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;styleVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pages.show(pageHost,"home");syncPlayback();refreshTheme();}
+    private void showHome(){if(downloadCenter!=null&&downloadCenter.busy()){showError("下载任务进行中","请先完成或取消下载页中的任务。");return;}appearanceVisible=false;styleVisible=false;downloadsVisible=false;if(appearancePanel!=null)appearancePanel.setActive(false);pageHost.transition(()->pages.show(pageHost,"home"));syncPlayback();refreshTheme();}
     void showAppearance(){
         if(downloadCenter!=null&&downloadCenter.busy())return;downloadsVisible=false;styleVisible=false;
-        if(appearancePanel!=null){appearancePanel.close();pageHost.remove(appearancePanel);}
-        appearancePanel=new AppearancePanel(library,appearance,this::applyAppearance,this::showStyles);pageHost.add(appearancePanel,"appearance");appearanceVisible=true;pages.show(pageHost,"appearance");appearancePanel.setActive((getExtendedState()&ICONIFIED)==0);syncPlayback();refreshTheme();
+        pageHost.transition(()->{if(appearancePanel!=null){appearancePanel.close();pageHost.remove(appearancePanel);}
+        appearancePanel=new AppearancePanel(library,appearance,this::applyAppearance,this::showStyles);pageHost.add(appearancePanel,"appearance");pages.show(pageHost,"appearance");});appearanceVisible=true;appearancePanel.setActive((getExtendedState()&ICONIFIED)==0);syncPlayback();refreshTheme();
     }
     private boolean applyAppearance(Appearance value){
         value.theme=appearance.theme;value.uiTransparency=appearance.uiTransparency;try{value.save(home);}catch(Exception e){showError("壁纸未保存","无法写入外观设置，请检查启动器目录权限。");return false;}
@@ -214,10 +214,10 @@ public final class LauncherFrame extends JFrame {
     }
     void showStyles(){
         if(downloadCenter!=null&&downloadCenter.busy())return;
-        if(stylePanel!=null)pageHost.remove(stylePanel);
-        stylePanel=new StylePanel(appearance,this::applyStyle,this::showHome,this::showAppearance);pageHost.add(stylePanel,"styles");
+        pageHost.transition(()->{if(stylePanel!=null)pageHost.remove(stylePanel);
+        stylePanel=new StylePanel(appearance,this::applyStyle,this::showHome,this::showAppearance);pageHost.add(stylePanel,"styles");pages.show(pageHost,"styles");});
         appearanceVisible=false;downloadsVisible=false;styleVisible=true;if(appearancePanel!=null)appearancePanel.setActive(false);
-        pages.show(pageHost,"styles");syncPlayback();refreshTheme();
+        syncPlayback();refreshTheme();
     }
     private boolean applyStyle(Appearance value){
         Appearance next=appearance.copy();next.theme=value.theme;next.uiTransparency=value.uiTransparency;

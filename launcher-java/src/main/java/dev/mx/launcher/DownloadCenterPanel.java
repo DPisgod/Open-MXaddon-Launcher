@@ -16,7 +16,7 @@ final class DownloadCenterPanel extends JPanel implements AutoCloseable {
     private final Consumer<String> installed;
     private final boolean network;
     private final CardLayout pages=new CardLayout();
-    private final JPanel body=UiTheme.transparent(pages);
+    private final UiMotion.Pages body=new UiMotion.Pages(pages);
     private final JPanel featured=UiTheme.transparent(new GridLayout(1,2,16,0));
     private final DefaultListModel<DownloadCatalog.Game> model=new DefaultListModel<>();
     private final JList<DownloadCatalog.Game> versions=new JList<>(model);
@@ -60,8 +60,8 @@ final class DownloadCenterPanel extends JPanel implements AutoCloseable {
         return panel;
     }
     private void show(int index,ContentCatalog.Kind kind){
-        if(resources.busy())return;for(int i=0;i<navigation.size();i++)navigation.get(i).selected=i==index;
-        pages.show(body,index==0?"games":"resources");if(kind!=null)resources.selectKind(kind);repaint();
+        if(resources.busy())return;boolean changed=!navigation.get(index).selected;for(int i=0;i<navigation.size();i++)navigation.get(i).selected=i==index;
+        body.transition(()->{pages.show(body,index==0?"games":"resources");if(kind!=null)resources.selectKind(kind);},changed);repaint();
     }
     private void configure(DownloadCatalog.Game game){if(game==null)return;new InstallVersionDialog(owner,root,this::complete,network,game).setVisible(true);}
     private void complete(String id){installed.accept(id);resources.refreshTargets(id);}
