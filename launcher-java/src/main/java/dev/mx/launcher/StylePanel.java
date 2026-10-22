@@ -14,6 +14,7 @@ final class StylePanel extends JPanel {
     private final JLabel message=UiTheme.muted("选择后立即生效并保存。",12);
     private final JRadioButton[] styles=new JRadioButton[PRESETS.length];
     private boolean updating;
+    private JCheckBox dollBox;
 
     StylePanel(Appearance appearance,Predicate<Appearance> apply,IntConsumer previewTransparency,Runnable back,Runnable wallpapers){
         this.saved=appearance.copy();this.apply=apply;setName("personalizationPanel");setOpaque(false);setLayout(new BorderLayout(0,22));setBorder(new EmptyBorder(24,30,24,30));
@@ -46,14 +47,15 @@ final class StylePanel extends JPanel {
         UiTheme.Button wallpaper=new UiTheme.Button("选择壁纸与播放设置","image",UiTheme.Tone.SURFACE);wallpaper.setName("wallpaperMenu");wallpaper.addActionListener(e->wallpapers.run());JPanel wallpaperArea=UiTheme.transparent(new FlowLayout(FlowLayout.LEFT,0,0));wallpaperArea.add(wallpaper);c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;settings.add(wallpaperArea,c);
         c.gridx=0;c.gridy=3;c.gridwidth=2;c.insets=new Insets(4,0,0,0);settings.add(UiTheme.muted("支持内置壁纸和自行导入图片或视频，预览后应用。",12),c);
         c.gridx=0;c.gridy=4;c.gridwidth=1;c.weightx=0;c.fill=GridBagConstraints.NONE;c.insets=new Insets(14,0,10,24);settings.add(UiTheme.label("皮肤玩偶",15,true),c);
-        JCheckBox dollBox=new JCheckBox("显示 3D 皮肤玩偶（拖动移动 · 右键设置 · 拖动旋转 · 滚轮缩放）",saved.doll);
+        dollBox=new JCheckBox("显示玩家玩偶（左键互动 · 拖动移动 · 右键设置）",saved.doll);
         dollBox.setName("skinDollToggle");dollBox.setOpaque(false);dollBox.setForeground(UiTheme.p().text());dollBox.setFont(UiTheme.font(12,false));
-        dollBox.addActionListener(e->{Appearance value=saved.copy();value.doll=dollBox.isSelected();save(value);});
+        dollBox.addActionListener(e->{if(updating)return;Appearance value=saved.copy();value.doll=dollBox.isSelected();save(value);});
         JPanel dollArea=UiTheme.transparent(new FlowLayout(FlowLayout.LEFT,0,0));dollArea.add(dollBox);
         c.gridx=1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;settings.add(dollArea,c);
-        c.gridx=0;c.gridy=5;c.gridwidth=2;c.insets=new Insets(2,0,0,0);settings.add(UiTheme.muted("玩偶显示当前账号的皮肤：正版用官方皮肤与披风，未识别皮肤时用原版 Steve；开启桌面玩偶时主页玩偶暂时隐藏。",12),c);
+        c.gridx=0;c.gridy=5;c.gridwidth=2;c.insets=new Insets(2,0,0,0);settings.add(UiTheme.muted("在启动器主页显示；支持正版皮肤、披风与玩家 ID，未识别皮肤时使用原版 Steve。",12),c);
         JPanel body=UiTheme.transparent(new BorderLayout());body.add(settings,BorderLayout.NORTH);add(body,BorderLayout.CENTER);add(message,BorderLayout.SOUTH);
     }
+    void dollSelected(boolean enabled){saved.doll=enabled;updating=true;try{dollBox.setSelected(enabled);}finally{updating=false;}}
     private static int index(String preset){for(int i=0;i<PRESETS.length;i++)if(PRESETS[i].equals(preset))return i;return 0;}
     private boolean save(Appearance value){if(!apply.test(value)){message.setText("保存失败，请检查启动器目录的写入权限。");return false;}saved=value.copy();message.setText("个性化设置已保存。");return true;}
     @Override protected void paintComponent(Graphics g){g.setColor(UiTheme.p().background());g.fillRect(0,0,getWidth(),getHeight());super.paintComponent(g);}

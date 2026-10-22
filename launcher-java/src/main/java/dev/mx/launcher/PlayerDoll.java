@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
 
-/** Owns one independent transparent desktop window; closed with its launcher. */
+/** One transparent player model mounted inside the launcher home page. */
 final class PlayerDoll implements AutoCloseable {
     private final Window owner;
     private final Path home;
@@ -16,7 +16,8 @@ final class PlayerDoll implements AutoCloseable {
     private final boolean network;
     private final PlayerTextures textures;
     private PlayerDollOptions options;
-    private JWindow window;
+    private JLayeredPane stage;
+    private boolean started,paused;
     private final PlayerDollView view=new PlayerDollView();
     private final javax.swing.Timer ticker=new UiMotion.FrameTimer(16,e->tick());
     private double targetAngle;
@@ -32,10 +33,24 @@ final class PlayerDoll implements AutoCloseable {
     PlayerDollOptions options(){return options.copy();}
     void onVisibilityChanged(Runnable listener){visibilityChanged=listener;}
     String notice(){return notice;}
-    void start(){if(options.enabled)show();}
+    void mount(JLayeredPane stage){
+        if(this.stage!=null)throw new IllegalStateException("Player doll already mounted");
+        this.stage=stage;view.setVisible(false);stage.add(view,JLayeredPane.PALETTE_LAYER);installMouse();
+        stage.addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){layoutView();}});
+        view.addHierarchyListener(e->{if((e.getChangeFlags()&HierarchyEvent.SHOWING_CHANGED)!=0)syncAnimation();});
+        layoutView();
+    }
+    void start(){started=true;if(options.enabled)show();}
+    void paused(boolean value){paused=value;syncAnimation();}
+    private void syncAnimation(){if(started&&!closed&&!paused&&options.enabled&&UiMotion.visible(view)){ticker.start();}else{ticker.stop();lastFrame=0;}}
+    void layoutView(){
+        if(stage==null)return;
+        Dimension size=new Dimension(Math.min(220*options.scale/100,Math.max(0,stage.getWidth()-24)),Math.min(300*options.scale/100,Math.max(0,stage.getHeight()-24)));
+        view.setSize(size);view.setLocation(PlayerDollOptions.position(options.x,options.y,size,stage.getSize()));stage.repaint();
+    }
     void openSettings(Window parent){if(settings!=null&&settings.isDisplayable()){settings.toFront();return;}settings=new PlayerDollSettingsDialog(parent==null?owner:parent,this);settings.setVisible(true);}
     private String selectedId(){if(options.manual)return options.player.strip();Session account=current.get();if(account!=null&&account.premium)return account.uuid;for(Session saved:accounts.get())if(saved.premium)return saved.uuid;return "";}
-    void accountChanged(){if(window!=null&&window.isVisible()&&!options.manual&&!selectedId().equalsIgnoreCase(sourceId))refresh();}
+    void accountChanged(){if(started&&options.enabled&&!options.manual&&!selectedId().equalsIgnoreCase(sourceId))refresh();}
     boolean apply(PlayerDollOptions next){
         if(next.manual&&!next.player.strip().matches("[A-Za-z0-9_]{1,16}")&&!next.player.strip().replace("-","").matches("[a-fA-F0-9]{32}")){notice="请输入正版 Java 玩家名或 UUID";updateNotice();return false;}
         next.scale=Math.max(60,Math.min(180,next.scale));next.player=next.player.strip();next.x=options.x;next.y=options.y;
@@ -44,9 +59,9 @@ final class PlayerDoll implements AutoCloseable {
         if(options.enabled)show();else hide();if(wasEnabled!=options.enabled)visibilityChanged.run();return true;
     }
     private void show(){
-        if(closed)return;
-        if(window==null){window=new JWindow((Window)null);window.setName("playerDollWindow");window.setType(Window.Type.UTILITY);window.setFocusableWindowState(false);window.setBackground(new Color(0,0,0,0));window.setContentPane(view);window.setIconImages(ApplicationIcon.images());installMouse();}
-        window.setAlwaysOnTop(options.topmost);view.showCape=options.cape;window.setSize(220*options.scale/100,300*options.scale/100);window.setLocation(PlayerDollOptions.position(options.x,options.y,window.getSize()));window.setVisible(true);ticker.start();if(!selectedId().equalsIgnoreCase(sourceId)||sourceId.isEmpty()||lookup!=null&&lookup.isCancelled())refresh();
+        if(closed||stage==null)return;
+        view.showCape=options.cape;layoutView();view.setVisible(true);syncAnimation();
+        if(!selectedId().equalsIgnoreCase(sourceId)||sourceId.isEmpty()||lookup!=null&&lookup.isCancelled())refresh();
     }
     void refresh(){
         if(closed)return;String id=selectedId();sourceId=id;int serial=++request;if(lookup!=null)lookup.cancel(true);
@@ -59,13 +74,13 @@ final class PlayerDoll implements AutoCloseable {
         };lookup.execute();
     }
     private void updateNotice(){if(settings!=null&&settings.isDisplayable())settings.status(notice);}
-    private void tick(){long now=System.nanoTime();double dt=lastFrame==0?16:Math.min(100,(now-lastFrame)/1_000_000.0);lastFrame=now;view.angle+=(targetAngle-view.angle)*(1-Math.exp(-dt/55.0));view.repaint();}
-    private void hide(){ticker.stop();lastFrame=0;if(lookup!=null)lookup.cancel(true);if(window!=null)window.setVisible(false);}
+    private void tick(){if(!UiMotion.visible(view)||paused){syncAnimation();return;}long now=System.nanoTime();double dt=lastFrame==0?16:Math.min(100,(now-lastFrame)/1_000_000.0);lastFrame=now;view.angle+=(targetAngle-view.angle)*(1-Math.exp(-dt/55.0));view.repaint();}
+    private void hide(){ticker.stop();lastFrame=0;if(lookup!=null)lookup.cancel(true);view.setVisible(false);}
     private void installMouse(){
         MouseAdapter mouse=new MouseAdapter(){Point pressed,origin;boolean moved;
-            @Override public void mousePressed(MouseEvent e){if(SwingUtilities.isLeftMouseButton(e)){pressed=e.getLocationOnScreen();origin=window.getLocation();moved=false;}}
-            @Override public void mouseDragged(MouseEvent e){if(pressed==null)return;Point now=e.getLocationOnScreen();int dx=now.x-pressed.x,dy=now.y-pressed.y;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;if(moved)window.setLocation(PlayerDollOptions.position(origin.x+dx,origin.y+dy,window.getSize()));}
-            @Override public void mouseReleased(MouseEvent e){if(SwingUtilities.isRightMouseButton(e)){menu(e);return;}if(!SwingUtilities.isLeftMouseButton(e)||pressed==null)return;if(moved){options.x=window.getX();options.y=window.getY();saveQuietly();}else view.interact();pressed=null;}
+            @Override public void mousePressed(MouseEvent e){if(SwingUtilities.isLeftMouseButton(e)){pressed=e.getLocationOnScreen();origin=view.getLocation();moved=false;}}
+            @Override public void mouseDragged(MouseEvent e){if(pressed==null)return;Point now=e.getLocationOnScreen();int dx=now.x-pressed.x,dy=now.y-pressed.y;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;if(moved)view.setLocation(PlayerDollOptions.position(origin.x+dx,origin.y+dy,view.getSize(),stage.getSize()));}
+            @Override public void mouseReleased(MouseEvent e){if(SwingUtilities.isRightMouseButton(e)){menu(e);return;}if(!SwingUtilities.isLeftMouseButton(e)||pressed==null)return;if(moved){options.x=view.getX();options.y=view.getY();saveQuietly();}else view.interact();pressed=null;}
             @Override public void mouseWheelMoved(MouseWheelEvent e){targetAngle+=e.getPreciseWheelRotation()*.18;e.consume();}
         };view.addMouseListener(mouse);view.addMouseMotionListener(mouse);view.addMouseWheelListener(mouse);
     }
@@ -73,5 +88,5 @@ final class PlayerDoll implements AutoCloseable {
     private static void item(JPopupMenu menu,String title,Runnable action){JMenuItem item=new JMenuItem(title);item.setFont(UiTheme.font(12,false));item.setBackground(UiTheme.p().surface());item.setForeground(UiTheme.p().text());item.addActionListener(e->action.run());menu.add(item);}
     private void saveQuietly(){try{options.save(home);}catch(Exception failure){notice="位置未保存："+message(failure);updateNotice();}}
     private static String message(Throwable failure){while(failure.getCause()!=null&&failure.getCause()!=failure)failure=failure.getCause();return failure.getMessage()==null?"请稍后重试":failure.getMessage();}
-    @Override public void close(){closed=true;request++;hide();if(window!=null)window.dispose();if(settings!=null)settings.dispose();}
+    @Override public void close(){closed=true;request++;hide();if(stage!=null){stage.remove(view);stage.repaint();}if(settings!=null)settings.dispose();}
 }
