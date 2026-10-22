@@ -89,7 +89,7 @@ public final class LauncherFrame extends JFrame {
     }
     private void bindModDrop(Component component){
         if(component instanceof JComponent target)target.setTransferHandler(new TransferHandler(){
-            @Override public boolean canImport(TransferSupport support){return canAcceptDrops()&&support.isDataFlavorSupported(DataFlavor.javaFileListFlavor);}
+            @Override public boolean canImport(TransferSupport support){if(!canAcceptDrops()||!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor))return false;if(support.isDrop()){if((support.getSourceDropActions()&COPY)==0)return false;support.setDropAction(COPY);}return true;}
             @Override public boolean importData(TransferSupport support){if(!canImport(support))return false;try{Object value=support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);if(value instanceof List<?> files){List<Path> paths=new java.util.ArrayList<>();for(Object file:files)if(file instanceof File f)paths.add(f.toPath());SwingUtilities.invokeLater(()->importDroppedFiles(paths));return true;}}catch(Exception e){showError("无法导入文件",root(e));}return false;}
         });
         if(component instanceof Container container)for(Component child:container.getComponents())bindModDrop(child);
